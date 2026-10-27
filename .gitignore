@@ -1,0 +1,24 @@
+# Node
+node_modules/
+*.log
+
+# Vite build output
+dist/
+
+# Rust / Tauri
+/target/
+/src-tauri/target/
+/src-tauri/gen/schemas/
+.cargo/
+
+# Nix / direnv
+.direnv/
+result
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~

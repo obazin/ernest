@@ -1,0 +1,57 @@
+{
+    "$schema": "https://schema.tauri.app/config/2",
+    "productName": "Hemingway",
+    "mainBinaryName": "Hemingway",
+    "version": "0.1.0",
+    "identifier": "tech.seventhrank.hemingway",
+    "build": {
+        "beforeDevCommand": "pnpm dev",
+        "beforeBuildCommand": "pnpm build",
+        "frontendDist": "../dist",
+        "devUrl": "http://localhost:1420"
+    },
+    "app": {
+        "windows": [
+            {
+                "label": "main",
+                "title": "Hemingway",
+                "width": 1200,
+                "height": 860,
+                "minWidth": 480,
+                "minHeight": 360,
+                "center": true,
+                "visible": false
+            }
+        ],
+        "security": {
+            "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'; form-action 'none'; frame-src 'none'"
+        }
+    },
+    "bundle": {
+        "active": true,
+        "targets": "all",
+        "category": "Productivity",
+        "shortDescription": "Distraction-free writing",
+        "icon": [
+            "icons/32x32.png",
+            "icons/128x128.png",
+            "icons/128x128@2x.png",
+            "icons/icon.icns",
+            "icons/icon.ico"
+        ],
+        "fileAssociations": [
+            {
+                "ext": ["md", "markdown"],
+                "name": "Markdown",
+                "role": "Editor",
+                "mimeType": "text/markdown"
+            },
+            {
+                "ext": ["txt"],
+                "name": "Plain Text",
+                "role": "Editor",
+                "mimeType": "text/plain"
+            }
+        ]
+    }
+}

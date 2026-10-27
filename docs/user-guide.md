@@ -1,0 +1,145 @@
+# User guide
+
+## The zen view
+
+Hemingway opens straight into a single column of text on an empty page. There are no toolbars, sidebars or menus to dismiss.
+
+- **Fixed-width column.** The text column keeps the same width in pixels whatever the window size (680 px by default), so line length stays comfortable to read. Change it under Settings → Column width.
+- **Typewriter scrolling.** The line you are writing stays at the vertical centre of the window, and the text moves around it. This holds when typing, when moving with Vim motions, after jumps such as `G` or a search, and after resizing the window. Toggle it with Mod+Shift+T.
+- **Focus mode.** Dims every paragraph except the one holding the cursor. Toggle it with Mod+Shift+D.
+- **Status line.** Shows the file name, a dot when there are unsaved changes, the Vim mode and the word count. It fades out as soon as you type and comes back when you pause or move the mouse. Messages such as `"notes.md" written` also appear there.
+- **Full screen.** Ctrl+Cmd+F on macOS, F11 elsewhere.
+
+On macOS the title bar is hidden; drag the window by its top edge.
+
+## Files
+
+Hemingway edits one document at a time.
+
+| Format                      | Extensions                                   | Treatment                                                                                                         |
+| --------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Markdown (GitHub flavoured) | `.md`, `.markdown`, `.mdown`, `.mkd`, `.mdx` | Headings, emphasis, links, quotes and code are coloured; fenced code blocks are highlighted in their own language |
+| Plain text                  | anything else                                | No highlighting                                                                                                   |
+
+A new, unnamed document is treated as Markdown. Saving it under another extension switches the highlighting.
+
+Files are read and written as UTF-8. A file that is not valid UTF-8 is refused rather than corrupted. Windows (CRLF) line endings are preserved as they are.
+
+Saving is safe against crashes: the new text is written to a temporary file next to the original, flushed to disk, then renamed over it, so an interrupted save leaves the previous version intact. Saving through a symbolic link updates the target and keeps the link, and the file's permissions are kept.
+
+Opening a path that does not exist yet (from the command line or with `:e`) gives an empty document under that name; the file is created on the first save. This matches `vim new.md`.
+
+### Opening a file on launch
+
+```sh
+Hemingway path/to/chapter.md
+```
+
+In development: `just run path/to/chapter.md`.
+
+### Unsaved changes
+
+Closing the window, quitting, opening another file or starting a new one with unsaved changes asks for confirmation first. The Vim commands answer the Vim way instead: `:q`, `:e` and `:enew` refuse with `E37: No write since last change (add ! to override)`, and the `!` forms discard.
+
+### Autosave
+
+With Settings → Autosave on, a document that has a file name is saved 1.5 seconds after you stop typing. Untitled documents are never autosaved.
+
+## Vim mode
+
+Vim mode is on by default; turn it off under Settings → Vim mode. Normal, insert, visual (character, line, block) and replace modes, operators, text objects, counts, registers, marks, macros, `.` repeat, `/` and `?` search, and `:s` substitution are provided by [codemirror-vim](https://github.com/replit/codemirror-vim).
+
+### Ex commands
+
+| Command           | Effect                                                                                                      |
+| ----------------- | ----------------------------------------------------------------------------------------------------------- |
+| `:w`              | Save. An untitled document asks for a location.                                                             |
+| `:w path`         | Write a copy to `path`; the current document keeps its name. An untitled document takes `path` as its name. |
+| `:sav path`       | Save under `path` and continue editing that file.                                                           |
+| `:wq`, `:x`       | Save and close.                                                                                             |
+| `:q`              | Close, refusing if there are unsaved changes.                                                               |
+| `:q!`             | Close and discard unsaved changes.                                                                          |
+| `:e path`         | Open `path`, refusing if there are unsaved changes.                                                         |
+| `:e`              | Re-read the current file from disk (opens the file picker for an untitled document).                        |
+| `:e!`             | Revert to the version on disk, discarding changes.                                                          |
+| `:enew`, `:enew!` | Start a new untitled document.                                                                              |
+| `:colo`           | Show the current theme.                                                                                     |
+| `:colo name`      | Switch theme, e.g. `:colo tokyo-night`. Theme names are listed below.                                       |
+
+Paths may be absolute, start with `~/`, or be relative to the folder of the current document (relative to your home folder for an untitled one).
+
+## Keyboard shortcuts
+
+`Mod` is Cmd on macOS and Ctrl on Windows and Linux.
+
+| Keys                    | Action                                         |
+| ----------------------- | ---------------------------------------------- |
+| Mod+S                   | Save                                           |
+| Mod+Shift+S             | Save as                                        |
+| Mod+O                   | Open                                           |
+| Mod+N                   | New document                                   |
+| Mod+,                   | Settings (Esc closes)                          |
+| Mod+= / Mod+- / Mod+0   | Font size up / down / reset                    |
+| Mod+Shift+T             | Toggle typewriter scrolling                    |
+| Mod+Shift+D             | Toggle focus mode                              |
+| Mod+F                   | Search (outside Vim mode; in Vim mode use `/`) |
+| Ctrl+Cmd+F (macOS), F11 | Full screen                                    |
+
+On Windows and Linux, Ctrl+O and Ctrl+N mean something in Vim (jump back, completion). While Vim mode is on, those two shortcuts are left to Vim; use `:e` and `:enew` instead.
+
+## Settings
+
+Open with Mod+,. Changes apply immediately and are saved automatically.
+
+| Setting              | Default           | Range                      |
+| -------------------- | ----------------- | -------------------------- |
+| Theme                | Catppuccin Mocha  | see below                  |
+| Font                 | Default monospace | any installed font         |
+| Size                 | 18 px             | 10–40 px                   |
+| Line height          | 1.70              | 1.00–2.50                  |
+| Column width         | 680 px            | 360–1400 px                |
+| Vim mode             | on                |                            |
+| Typewriter scrolling | on                |                            |
+| Focus mode           | off               |                            |
+| Spell checking       | on                | uses the system dictionary |
+| Autosave             | off               |                            |
+
+Settings are stored as JSON in:
+
+| Platform | Location                                                                 |
+| -------- | ------------------------------------------------------------------------ |
+| macOS    | `~/Library/Application Support/tech.seventhrank.hemingway/settings.json` |
+| Linux    | `~/.config/tech.seventhrank.hemingway/settings.json`                     |
+| Windows  | `%APPDATA%\tech.seventhrank.hemingway\settings.json`                     |
+
+The file can be edited by hand while the app is closed. Unknown keys are ignored, and invalid or out-of-range values fall back to their defaults, so a broken file never prevents startup.
+
+## Themes
+
+Each theme colours the whole window: the page, the text and Markdown syntax, the cursor and selection, the status line and the settings panel.
+
+| Name for `:colo`       | Theme                | Appearance |
+| ---------------------- | -------------------- | ---------- |
+| `catppuccin-mocha`     | Catppuccin Mocha     | dark       |
+| `catppuccin-macchiato` | Catppuccin Macchiato | dark       |
+| `catppuccin-frappe`    | Catppuccin Frappé    | dark       |
+| `catppuccin-latte`     | Catppuccin Latte     | light      |
+| `darcula`              | Darcula              | dark       |
+| `dracula`              | Dracula              | dark       |
+| `nord`                 | Nord                 | dark       |
+| `gruvbox-dark`         | Gruvbox Dark         | dark       |
+| `gruvbox-light`        | Gruvbox Light        | light      |
+| `solarized-dark`       | Solarized Dark       | dark       |
+| `solarized-light`      | Solarized Light      | light      |
+| `tokyo-night`          | Tokyo Night          | dark       |
+| `one-dark`             | One Dark             | dark       |
+| `rose-pine`            | Rosé Pine            | dark       |
+
+## Known limitations
+
+- Only tested on macOS so far. Windows and Linux builds are configured but have not yet been run; Linux renders through WebKitGTK, whose text rendering and performance are the weakest of the three webviews.
+- Quitting from the application menu (Cmd+Q) is routed through the unsaved-changes check, but that path has not been verified on every platform.
+- Undoing back to the saved text still shows the document as modified.
+- No final newline is added on save (Vim's `fixeol` behaviour).
+- One document per window, and one window.
+- Opening files from the Finder / Explorer ("Open with") is declared in the bundle but not yet handled at runtime; use the command line or Mod+O.
