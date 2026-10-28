@@ -80,6 +80,7 @@
             typewriter: settings.typewriter,
             focusMode: settings.focusMode,
             spellcheck: settings.spellcheck,
+            livePreview: settings.livePreview,
         });
     });
 
@@ -261,6 +262,7 @@
             '0': () => (settings.fontSize = defaultSettings.fontSize),
             t: event.shiftKey ? () => (settings.typewriter = !settings.typewriter) : undefined,
             d: event.shiftKey ? () => (settings.focusMode = !settings.focusMode) : undefined,
+            p: event.shiftKey ? () => (settings.livePreview = !settings.livePreview) : undefined,
         };
         const action = actions[key];
         if (!action) return;
@@ -291,6 +293,7 @@
                     typewriter: settings.typewriter,
                     focusMode: settings.focusMode,
                     spellcheck: settings.spellcheck,
+                    livePreview: settings.livePreview,
                 },
                 { onChange: handleChange, onVimModeChange: (mode) => (vimMode = mode) },
             );

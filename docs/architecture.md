@@ -9,6 +9,7 @@ Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process ow
 │  │   ├─ vim()            @replit/codemirror-vim          │
 │  │   ├─ typewriter       centred scrolling               │
 │  │   ├─ markdown()       highlighting                    │
+│  │   ├─ livePreview      hides markup off the cursor line│
 │  │   └─ editorTheme      colours/typography via CSS vars │
 │  ├─ StatusLine.svelte                                    │
 │  └─ SettingsPanel.svelte                                 │
@@ -49,11 +50,17 @@ The settings schema, defaults and validation live only in `src/lib/settings.ts`.
 
 ## Editor
 
-`WritingEditor` (`src/lib/editor/writingEditor.ts`) wraps the `EditorView`. Everything that can change at runtime (Vim, typewriter scrolling, language, focus mode and spell check attributes) sits in its own `Compartment`, so toggling one reconfigures only that part and keeps undo history. Loading a document replaces the whole `EditorState` instead, which deliberately starts a fresh history.
+`WritingEditor` (`src/lib/editor/writingEditor.ts`) wraps the `EditorView`. Everything that can change at runtime (Vim, typewriter scrolling, language with live preview, focus mode and spell check attributes) sits in its own `Compartment`, so toggling one reconfigures only that part and keeps undo history. Loading a document replaces the whole `EditorState` instead, which deliberately starts a fresh history.
 
 Extension order matters in one place: `vim()` comes first so it sees keys before any other keymap.
 
 Line endings: CodeMirror normalises to `\n` internally. When a loaded file contains `\r\n`, the state is created with `EditorState.lineSeparator.of('\r\n')` and the text is read back with `state.sliceDoc()`, which joins with that separator, so CRLF files round-trip unchanged.
+
+### Live preview
+
+`src/lib/editor/livePreview.ts` is a view plugin that walks the Markdown syntax tree over the visible ranges and adds decorations: `Decoration.replace` hides marker nodes (`HeaderMark`, `EmphasisMark`, `CodeMark`, `LinkMark` with the URL, `QuoteMark`, …) or swaps them for small widgets (bullets, task boxes, rules), and a line decoration draws the quote bar. The document text is never touched, so saving, undo and Vim registers see exactly what is in the file.
+
+Markup is revealed per line, for every line a selection range touches, rather than per element as Obsidian does. Within the line being edited, column positions therefore never shift as the cursor moves, which Vim motions such as `f*`, `3l` or `t)` depend on. The decorations are rebuilt when the document, viewport, selection, focus or parse tree changes. Replacements never span a line break, since plugins may only do that with block widgets. The plugin lives in the language compartment, so it is present only for Markdown documents and toggling it keeps undo history.
 
 ### Typewriter scrolling
 

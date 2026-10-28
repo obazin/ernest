@@ -12,6 +12,8 @@ export interface Settings {
     typewriter: boolean;
     focusMode: boolean;
     spellcheck: boolean;
+    /** Hides Markdown syntax except on the lines being edited. */
+    livePreview: boolean;
     /** Writes a named document shortly after typing stops. */
     autosave: boolean;
 }
@@ -26,6 +28,7 @@ export const defaultSettings: Settings = {
     typewriter: true,
     focusMode: false,
     spellcheck: true,
+    livePreview: true,
     autosave: false,
 };
 
@@ -52,8 +55,9 @@ export function normalizeSettings(stored: unknown): Settings {
         if (typeof value !== 'number' || !Number.isFinite(value)) return defaultSettings[key];
         return clamp(value, limits[key].minimum, limits[key].maximum);
     };
-    const boolean = (key: 'vim' | 'typewriter' | 'focusMode' | 'spellcheck' | 'autosave') =>
-        typeof source[key] === 'boolean' ? source[key] : defaultSettings[key];
+    const boolean = (
+        key: 'vim' | 'typewriter' | 'focusMode' | 'spellcheck' | 'livePreview' | 'autosave',
+    ) => (typeof source[key] === 'boolean' ? source[key] : defaultSettings[key]);
 
     const theme =
         typeof source.theme === 'string' &&
@@ -71,6 +75,7 @@ export function normalizeSettings(stored: unknown): Settings {
         typewriter: boolean('typewriter'),
         focusMode: boolean('focusMode'),
         spellcheck: boolean('spellcheck'),
+        livePreview: boolean('livePreview'),
         autosave: boolean('autosave'),
     };
 }

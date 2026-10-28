@@ -22,13 +22,18 @@
     });
 
     const toggles: {
-        key: 'vim' | 'typewriter' | 'focusMode' | 'spellcheck' | 'autosave';
+        key: 'vim' | 'typewriter' | 'focusMode' | 'spellcheck' | 'livePreview' | 'autosave';
         label: string;
         hint: string;
     }[] = [
         { key: 'vim', label: 'Vim mode', hint: ':w :q :e :sav :enew :colo' },
         { key: 'typewriter', label: 'Typewriter scrolling', hint: 'Keep the current line centred' },
         { key: 'focusMode', label: 'Focus mode', hint: 'Dim every paragraph but this one' },
+        {
+            key: 'livePreview',
+            label: 'Live preview',
+            hint: 'Hide Markdown syntax off the current line',
+        },
         { key: 'spellcheck', label: 'Spell checking', hint: 'Uses the system dictionary' },
         { key: 'autosave', label: 'Autosave', hint: 'Write named files when you pause' },
     ];

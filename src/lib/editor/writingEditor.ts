@@ -12,6 +12,7 @@ import {
 } from '@codemirror/view';
 import { getCM, vim } from '@replit/codemirror-vim';
 import { editorTheme } from './editorTheme';
+import { livePreview } from './livePreview';
 import { typewriterScrolling } from './typewriter';
 
 export type DocumentKind = 'markdown' | 'plain-text';
@@ -21,6 +22,8 @@ export interface EditorOptions {
     typewriter: boolean;
     focusMode: boolean;
     spellcheck: boolean;
+    /** Hides Markdown syntax outside the lines being edited. */
+    livePreview: boolean;
 }
 
 export interface EditorCallbacks {
@@ -41,6 +44,7 @@ export class WritingEditor {
     private readonly typewriter = new Compartment();
     private readonly attributes = new Compartment();
     private options: EditorOptions;
+    private kind: DocumentKind = 'markdown';
 
     constructor(
         parent: HTMLElement,
@@ -50,14 +54,15 @@ export class WritingEditor {
         this.options = options;
         this.view = new EditorView({
             parent,
-            state: this.createState('', 'markdown'),
+            state: this.createState(''),
         });
         this.attachVimModeListener();
     }
 
     /** Replaces the document, starting a fresh undo history. */
     load(text: string, kind: DocumentKind) {
-        this.view.setState(this.createState(text, kind));
+        this.kind = kind;
+        this.view.setState(this.createState(text));
         this.attachVimModeListener();
         if (this.options.vim) this.callbacks.onVimModeChange('normal');
         this.view.dispatch({ selection: { anchor: 0 } });
@@ -65,7 +70,8 @@ export class WritingEditor {
 
     /** Switches highlighting after a save under a different extension, keeping history. */
     setKind(kind: DocumentKind) {
-        this.view.dispatch({ effects: this.language.reconfigure(this.languageExtension(kind)) });
+        this.kind = kind;
+        this.view.dispatch({ effects: this.language.reconfigure(this.languageExtension()) });
     }
 
     /** The document with its original line endings. */
@@ -84,6 +90,9 @@ export class WritingEditor {
             effects.push(
                 this.typewriter.reconfigure(options.typewriter ? typewriterScrolling() : []),
             );
+        }
+        if (previous.livePreview !== options.livePreview) {
+            effects.push(this.language.reconfigure(this.languageExtension()));
         }
         if (
             previous.focusMode !== options.focusMode ||
@@ -106,7 +115,7 @@ export class WritingEditor {
         this.view.destroy();
     }
 
-    private createState(text: string, kind: DocumentKind): EditorState {
+    private createState(text: string): EditorState {
         return EditorState.create({
             doc: text,
             extensions: [
@@ -123,7 +132,7 @@ export class WritingEditor {
                 EditorView.lineWrapping,
                 search({ top: false }),
                 keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
-                this.language.of(this.languageExtension(kind)),
+                this.language.of(this.languageExtension()),
                 this.typewriter.of(this.options.typewriter ? typewriterScrolling() : []),
                 this.attributes.of(this.attributeExtensions()),
                 editorTheme(),
@@ -134,11 +143,13 @@ export class WritingEditor {
         });
     }
 
-    private languageExtension(kind: DocumentKind): Extension {
-        // Fenced code blocks are highlighted in their own language, loaded on demand.
-        return kind === 'markdown'
-            ? markdown({ base: markdownLanguage, codeLanguages: languages })
-            : [];
+    private languageExtension(): Extension {
+        if (this.kind !== 'markdown') return [];
+        return [
+            // Fenced code blocks are highlighted in their own language, loaded on demand.
+            markdown({ base: markdownLanguage, codeLanguages: languages }),
+            this.options.livePreview ? livePreview() : [],
+        ];
     }
 
     private attributeExtensions(): Extension {
