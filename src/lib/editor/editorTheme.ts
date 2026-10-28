@@ -60,6 +60,13 @@ const chrome = EditorView.theme({
     '.cm-yank-flash': {
         backgroundColor: 'color-mix(in srgb, var(--color-highlight) 45%, transparent)',
     },
+    // What stands in for a folded section.
+    '.cm-foldPlaceholder': {
+        backgroundColor: 'transparent',
+        border: 'none',
+        color: 'var(--color-muted)',
+        padding: '0 0.3em',
+    },
     '.cm-placeholder': { color: 'var(--color-muted)' },
     // Vim's `:` / `/` prompt, docked at the bottom like a status line.
     '.cm-panels': {

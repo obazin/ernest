@@ -66,6 +66,8 @@ A paragraph is one long line that wraps on screen, so the keys below work on the
 | `o`, `O`                | Open a line below or above. In a list or quote the new line continues it: `- `, `- [ ] `, the next number, `> `.                                                                                                                              |
 | `gq`, `gw`              | Join lines into one line per paragraph (instead of wrapping at 80 columns), e.g. `gqip` for the paragraph, `gqG` to the end. List items, quotes, headings, tables, code blocks and hard line breaks are kept. `gw` keeps the cursor in place. |
 | `J`, `K` in visual mode | Move the selected lines down or up, keeping them selected. In normal mode `J` still joins lines.                                                                                                                                              |
+| `zc`, `zo`, `za`        | Fold, unfold or toggle the section under the cursor. A heading folds everything up to the next heading of the same or a higher level; lists, quotes and code blocks fold too. Markdown documents only.                                        |
+| `zM`, `zR`              | Fold or unfold everything.                                                                                                                                                                                                                    |
 
 ### Clipboard
 

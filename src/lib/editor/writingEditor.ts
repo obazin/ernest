@@ -1,5 +1,6 @@
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
+import { codeFolding } from '@codemirror/language';
 import { languages } from '@codemirror/language-data';
 import { search, searchKeymap } from '@codemirror/search';
 import { Compartment, EditorState, type Extension } from '@codemirror/state';
@@ -154,6 +155,8 @@ export class WritingEditor {
         return [
             // Fenced code blocks are highlighted in their own language, loaded on demand.
             markdown({ base: markdownLanguage, codeLanguages: languages }),
+            // Headings fold their section (Vim's zc, zo, za, zM, zR).
+            codeFolding({ placeholderText: '…' }),
             this.options.livePreview ? livePreview() : [],
         ];
     }

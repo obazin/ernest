@@ -1,5 +1,6 @@
 import { registerClipboard } from './clipboard';
 import { registerDisplayLineMotions } from './displayLines';
+import { registerFolding } from './folding';
 import { registerHalfPageMotion } from './halfPage';
 import { registerHeadingMotion } from './headingMotion';
 import { registerMoveLines } from './moveLines';
@@ -23,4 +24,5 @@ export function installVimExtensions() {
     registerReflowOperator();
     registerMoveLines();
     registerClipboard();
+    registerFolding();
 }
