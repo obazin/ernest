@@ -9,6 +9,7 @@ Ernest opens straight into a single column of text on an empty page. There are n
 - **Focus mode.** Dims every paragraph except the one holding the cursor. Toggle it with Mod+Shift+D.
 - **Live preview.** In Markdown documents, the syntax (`#`, `**`, `_`, backticks, `[…](…)`, `>`) is hidden and only its effect shows: a heading reads as a heading, a link as its text. The markup reappears on the line holding the cursor (every line of a selection), so you edit the raw text and see the result as soon as you move away. Bullets show as `•`, task boxes as `☐`/`☑`, horizontal rules as a line, and quotes keep a bar in the margin. Fenced code blocks and images are left as written. When the window loses focus, every line is shown rendered. Toggle it with Mod+Shift+P.
 - **Status line.** Shows the file name, a dot when there are unsaved changes, the Vim mode and the word count. It fades out as soon as you type and comes back when you pause or move the mouse. Messages such as `"notes.md" written` also appear there.
+- **Spell checking.** Unknown words get a wavy underline, checked against a built-in English (US) dictionary plus the words you add. Code, URLs, e-mail addresses and HTML are not checked, and a word is not judged while you are still typing it. Turn it off under Settings → Spell checking.
 - **Full screen.** Ctrl+Cmd+F on macOS, F11 elsewhere.
 
 On macOS the title bar is hidden; drag the window by its top edge.
@@ -147,7 +148,7 @@ Open with Mod+,. Changes apply immediately and are saved automatically.
 | Typewriter scrolling        | on                |                                  |
 | Focus mode                  | off               |                                  |
 | Live preview                | on                | Markdown documents only          |
-| Spell checking              | on                | uses the system dictionary       |
+| Spell checking              | on                | English (US), plus words you add |
 | Autosave                    | off               |                                  |
 
 Settings are stored as JSON in:
@@ -157,6 +158,8 @@ Settings are stored as JSON in:
 | macOS    | `~/Library/Application Support/it.olivierbazin.ernest/settings.json` |
 | Linux    | `~/.config/it.olivierbazin.ernest/settings.json`                     |
 | Windows  | `%APPDATA%\it.olivierbazin.ernest\settings.json`                     |
+
+Words you add to the dictionary are kept one per line in `dictionary.txt`, in the same folder.
 
 The file can be edited by hand while the app is closed. Unknown keys are ignored, and invalid or out-of-range values fall back to their defaults, so a broken file never prevents startup.
 

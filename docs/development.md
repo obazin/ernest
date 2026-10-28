@@ -60,10 +60,11 @@ src/lib/backend.ts               typed wrappers over the Rust commands
 src/lib/settings.ts              settings schema, defaults, validation
 src/lib/wordCount.ts             word counting
 src/lib/components/              StatusLine, SettingsPanel
-src/lib/editor/                  WritingEditor, typewriter, Vim commands, editor theme
+src/lib/editor/                  WritingEditor, typewriter, spelling, Vim commands, editor theme
 src/lib/editor/vim/              Vim motions, actions and operators tuned for prose
 src/lib/themes/palettes.ts       theme palettes and applyPalette
-src-tauri/src/                   lib.rs, documents.rs, fonts.rs, settings.rs, error.rs
+src-tauri/src/                   lib.rs, documents.rs, fonts.rs, settings.rs, spelling.rs, error.rs
+src-tauri/dictionaries/          bundled en_US Hunspell dictionary and its licence
 src-tauri/tauri.conf.json        app, window, bundle and CSP configuration
 src-tauri/tauri.macos.conf.json  macOS window overrides (overlay title bar)
 src-tauri/capabilities/          webview permissions

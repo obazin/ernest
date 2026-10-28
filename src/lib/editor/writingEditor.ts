@@ -14,6 +14,7 @@ import {
 import { getCM, vim } from '@replit/codemirror-vim';
 import { editorTheme } from './editorTheme';
 import { livePreview } from './livePreview';
+import { spellChecking } from './spelling';
 import { typewriterScrolling } from './typewriter';
 import { yankFlash } from './vim/yankFlash';
 
@@ -45,6 +46,7 @@ export class WritingEditor {
     private readonly vimMode = new Compartment();
     private readonly typewriter = new Compartment();
     private readonly attributes = new Compartment();
+    private readonly spelling = new Compartment();
     private options: EditorOptions;
     private kind: DocumentKind = 'markdown';
 
@@ -96,11 +98,11 @@ export class WritingEditor {
         if (previous.livePreview !== options.livePreview) {
             effects.push(this.language.reconfigure(this.languageExtension()));
         }
-        if (
-            previous.focusMode !== options.focusMode ||
-            previous.spellcheck !== options.spellcheck
-        ) {
+        if (previous.focusMode !== options.focusMode) {
             effects.push(this.attributes.reconfigure(this.attributeExtensions()));
+        }
+        if (previous.spellcheck !== options.spellcheck) {
+            effects.push(this.spelling.reconfigure(options.spellcheck ? spellChecking() : []));
         }
         if (effects.length > 0) this.view.dispatch({ effects });
         if (previous.vim !== options.vim) {
@@ -137,6 +139,7 @@ export class WritingEditor {
                 this.language.of(this.languageExtension()),
                 this.typewriter.of(this.options.typewriter ? typewriterScrolling() : []),
                 this.attributes.of(this.attributeExtensions()),
+                this.spelling.of(this.options.spellcheck ? spellChecking() : []),
                 editorTheme(),
                 EditorView.updateListener.of((update) => {
                     if (update.docChanged) this.callbacks.onChange();
@@ -165,7 +168,9 @@ export class WritingEditor {
         return [
             EditorView.editorAttributes.of({ class: this.options.focusMode ? 'focus-mode' : '' }),
             EditorView.contentAttributes.of({
-                spellcheck: this.options.spellcheck ? 'true' : 'false',
+                // Ernest checks spelling itself (`spelling.ts`); the native
+                // checker would underline the same words a second time.
+                spellcheck: 'false',
                 autocorrect: 'off',
                 autocapitalize: 'off',
             }),

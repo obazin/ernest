@@ -16,6 +16,8 @@ pub enum Error {
     Settings(#[from] serde_json::Error),
     #[error("no configuration directory: {0}")]
     ConfigurationDirectory(#[from] tauri::Error),
+    #[error("dictionary: {0}")]
+    Dictionary(String),
 }
 
 impl Error {

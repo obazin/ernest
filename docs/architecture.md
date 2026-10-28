@@ -10,6 +10,7 @@ Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process ow
 │  │   ├─ typewriter       centred scrolling               │
 │  │   ├─ markdown()       highlighting                    │
 │  │   ├─ livePreview      hides markup off the cursor line│
+│  │   ├─ spelling         underlines unknown words        │
 │  │   └─ editorTheme      colours/typography via CSS vars │
 │  ├─ StatusLine.svelte                                    │
 │  └─ SettingsPanel.svelte                                 │
@@ -20,7 +21,8 @@ Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process ow
 │ documents.rs  read / atomic write / launch argument      │
 │ fonts.rs      system font families (fontdb)              │
 │ settings.rs   settings.json in the app config directory  │
-│ lib.rs        builder, dialog plugin, quit interception  │
+│ spelling.rs   bundled Hunspell dictionary, own words     │
+│ lib.rs        builder, plugins, quit interception        │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -37,6 +39,9 @@ The split follows one rule: the backend does what a webview cannot do safely or 
 | `initial_document_path()`                     | `documents.rs` | The first non-flag command-line argument, made absolute.                                                                                                                  |
 | `list_system_fonts()`                         | `fonts.rs`     | Sorted, unique family names; async because parsing every font file takes a moment.                                                                                        |
 | `load_settings()` / `save_settings(settings)` | `settings.rs`  | Opaque JSON in the app config directory.                                                                                                                                  |
+| `check_words(words)`                          | `spelling.rs`  | Whether each word is spelled correctly.                                                                                                                                   |
+| `spelling_suggestions(word)`                  | `spelling.rs`  | Up to nine corrections.                                                                                                                                                   |
+| `add_to_dictionary(word)`                     | `spelling.rs`  | Adds a word to the personal word list.                                                                                                                                    |
 
 Errors are a single `thiserror` enum serialised as its display string: the frontend only ever shows them, it never branches on them.
 
@@ -50,7 +55,7 @@ The settings schema, defaults and validation live only in `src/lib/settings.ts`.
 
 ## Editor
 
-`WritingEditor` (`src/lib/editor/writingEditor.ts`) wraps the `EditorView`. Everything that can change at runtime (Vim, typewriter scrolling, language with live preview, focus mode and spell check attributes) sits in its own `Compartment`, so toggling one reconfigures only that part and keeps undo history. Loading a document replaces the whole `EditorState` instead, which deliberately starts a fresh history.
+`WritingEditor` (`src/lib/editor/writingEditor.ts`) wraps the `EditorView`. Everything that can change at runtime (Vim, typewriter scrolling, language with live preview, focus mode, spell checking) sits in its own `Compartment`, so toggling one reconfigures only that part and keeps undo history. Loading a document replaces the whole `EditorState` instead, which deliberately starts a fresh history.
 
 Extension order matters in one place: `vim()` comes first so it sees keys before any other keymap.
 
@@ -74,6 +79,14 @@ Instead, an `EditorView.scrollHandler` intercepts every scroll-into-view request
 Scroll handlers run while the view is in its update phase, where `coordsAtPos` and the other measuring APIs throw. The handler therefore measures the cursor's visual (wrapped) line through `view.domAtPos` and a DOM `Range`, falling back to the height map (`lineBlockAt` plus `documentTop`) for positions outside the rendered viewport, such as after `G`.
 
 The content has `calc(50vh - 1em)` of padding above and below so the first and last lines can reach the centre.
+
+### Spell checking
+
+The webview's native spell checker only draws underlines; it cannot be asked where the misspellings are or what to replace them with, which Vim's spelling keys need. Ernest therefore checks spelling itself and turns the native checker off.
+
+The backend (`spelling.rs`) owns the dictionary: an en_US Hunspell dictionary derived from SCOWL, compiled into the binary from `src-tauri/dictionaries/` so every platform spells alike, read with the pure-Rust `spellbook` crate. It is parsed on first use and kept in Tauri-managed state. Words the writer adds go to `dictionary.txt` in the app config directory, one per line, written atomically, and are loaded into the dictionary with it.
+
+The frontend (`src/lib/editor/spelling.ts`) finds the words: it skips Markdown code, URLs, HTML and link definitions using the syntax tree, plus bare URLs, e-mail addresses and paths, which the tree does not mark. A view plugin collects the words in the rendered viewport and, 300 ms after typing or scrolling pauses, sends the ones it has not seen in one `check_words` call. Answers are cached per word for the session, shared by every editor, so the backend only ever sees new words. The word ending at the cursor is not underlined while it is being typed.
 
 ### Vim ex commands
 

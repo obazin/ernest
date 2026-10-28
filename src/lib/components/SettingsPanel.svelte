@@ -42,7 +42,7 @@
             label: 'Live preview',
             hint: 'Hide Markdown syntax off the current line',
         },
-        { key: 'spellcheck', label: 'Spell checking', hint: 'Uses the system dictionary' },
+        { key: 'spellcheck', label: 'Spell checking', hint: 'English (US), plus words you add' },
         { key: 'autosave', label: 'Autosave', hint: 'Write named files when you pause' },
     ];
 

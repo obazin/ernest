@@ -56,6 +56,12 @@ const chrome = EditorView.theme({
     '.cm-searchMatch-selected': {
         backgroundColor: 'color-mix(in srgb, var(--color-highlight) 55%, transparent)',
     },
+    // Words the spell checker does not know.
+    '.cm-misspelled': {
+        textDecoration: 'underline wavy var(--color-accent)',
+        textDecorationSkipInk: 'none',
+        textUnderlineOffset: '3px',
+    },
     // Text just yanked in Vim mode, briefly.
     '.cm-yank-flash': {
         backgroundColor: 'color-mix(in srgb, var(--color-highlight) 45%, transparent)',

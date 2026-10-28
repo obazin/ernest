@@ -2,6 +2,7 @@ mod documents;
 mod error;
 mod fonts;
 mod settings;
+mod spelling;
 
 use tauri::{Emitter, Manager, RunEvent};
 
@@ -9,6 +10,7 @@ pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
+        .manage(spelling::SpellingState::default())
         .invoke_handler(tauri::generate_handler![
             documents::read_document,
             documents::write_document,
@@ -16,6 +18,9 @@ pub fn run() {
             fonts::list_system_fonts,
             settings::load_settings,
             settings::save_settings,
+            spelling::check_words,
+            spelling::spelling_suggestions,
+            spelling::add_to_dictionary,
         ])
         .build(tauri::generate_context!())
         .expect("error while building the Ernest application");

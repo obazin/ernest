@@ -17,4 +17,9 @@ export const backend = {
     listSystemFonts: () => invoke<string[]>('list_system_fonts'),
     loadSettings: () => invoke<unknown>('load_settings'),
     saveSettings: (settings: object) => invoke<void>('save_settings', { settings }),
+    /** Whether each word is spelled correctly, in order. */
+    checkWords: (words: string[]) => invoke<boolean[]>('check_words', { words }),
+    spellingSuggestions: (word: string) => invoke<string[]>('spelling_suggestions', { word }),
+    /** Adds a word to the personal dictionary. */
+    addToDictionary: (word: string) => invoke<void>('add_to_dictionary', { word }),
 };
