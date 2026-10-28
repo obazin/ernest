@@ -2,30 +2,31 @@
 
 ## Environment
 
-The development shell is defined in `flake.nix` and loaded automatically by direnv (`.envrc` contains `use flake`; run `direnv allow` once), or manually with `nix develop`.
+The development shell comes from the shared [tauri-projects](https://github.com/obazin/tauri-projects) flake, which builds on [rust-projects](https://github.com/obazin/rust-projects) for the Rust pin; `flake.nix` here only names the project. It is loaded automatically by direnv (`.envrc` contains `use flake`; run `direnv allow` once), or manually with `nix develop`.
 
 It provides:
 
-| Tool                                            | Notes                                                                                                                                                                            |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Rust                                            | Channel and components from `rust-toolchain.toml` (the single source of the pin), plus the standard library for every shipped target so `just check-targets` works from any host |
-| rust-analyzer, cargo-nextest                    |                                                                                                                                                                                  |
-| sccache                                         | Set as `RUSTC_WRAPPER`; the cache in `~/.cache/sccache` is shared with every other Rust project on the machine. `sccache --show-stats` shows the hit rate.                       |
-| Node 22, pnpm                                   |                                                                                                                                                                                  |
-| typescript-language-server, vtsls, svelteserver | For editors                                                                                                                                                                      |
-| just, git, ripgrep, fd, jq                      |                                                                                                                                                                                  |
-| `run`                                           | Wrapper for `just run`                                                                                                                                                           |
-| Linux only                                      | GTK 3, WebKitGTK 4.1, libsoup 3, glib-networking and friends, with `GIO_MODULE_DIR`, `XDG_DATA_DIRS` and `WEBKIT_DISABLE_DMABUF_RENDERER=1` set                                  |
+| Tool                                                                   | Notes                                                                                                                                                                                                       |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rust                                                                   | rust-projects' pinned channel with clippy, rustfmt, rust-src and rust-analyzer, plus the standard library for every shipped target so `just check-targets` works from any host                              |
+| cargo-nextest, cargo-audit, cargo-deny, cargo-outdated, cargo-edit     |                                                                                                                                                                                                             |
+| sccache                                                                | Set as `RUSTC_WRAPPER`; the cache in `~/.cache/sccache` is shared with every other Rust project on the machine. `sccache --show-stats` shows the hit rate.                                                  |
+| Node 22, pnpm                                                          |                                                                                                                                                                                                             |
+| typescript-language-server, vtsls, svelteserver, nixd, marksman, taplo | For editors                                                                                                                                                                                                 |
+| just, git, ripgrep, fd, jq, ast-grep                                   |                                                                                                                                                                                                             |
+| `run`                                                                  | Wrapper for `just run`                                                                                                                                                                                      |
+| `bootstrap-ai-harness`                                                 | Runs on shell entry: creates any missing file of the shared AI agent harness (`CLAUDE.md`, `.mcp.json`, `.claude/`). Files already present are never touched, so the project's versions are the ones in git |
+| Linux only                                                             | GTK 3, WebKitGTK 4.1, libsoup 3, glib-networking and friends, with `GIO_MODULE_DIR`, `XDG_DATA_DIRS` and `WEBKIT_DISABLE_DMABUF_RENDERER=1` set                                                             |
 
-`CARGO_HOME` is placed in `.cargo/` at the repository root. The shell re-executes into zsh when started interactively.
+`CARGO_HOME` is placed in `.cargo/` at the repository root. `rust-toolchain.toml` is a symlink the shell creates into the Nix store, so rustup reads the same pin; it is not committed. The shell re-executes into zsh when started interactively.
 
 Flakes only see files tracked by git: `git add` a new file before Nix needs it.
 
 To update the pins:
 
 ```sh
-nix flake update            # nixpkgs, rust-overlay, flake-utils
-# Rust: edit rust-toolchain.toml
+nix flake update            # tauri-projects, and through it rust-projects and nixpkgs
+# Rust: bump the channel in rust-projects, then update here
 pnpm update --latest        # frontend dependencies
 cd src-tauri && cargo update
 ```
@@ -50,7 +51,7 @@ TypeScript is held at 6.x because `svelte-check` does not support 7 yet; `pnpm p
 ## Project layout
 
 ```
-flake.nix, rust-toolchain.toml   dev shell and toolchain pin
+flake.nix                        dev shell (from tauri-projects)
 Justfile                         task runner
 ernest.config.json               build-time tuning values, validated by src/lib/config.ts
 index.html, src/main.ts          entry point
