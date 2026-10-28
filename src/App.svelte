@@ -7,6 +7,7 @@
     import { backend } from './lib/backend';
     import SettingsPanel from './lib/components/SettingsPanel.svelte';
     import StatusLine from './lib/components/StatusLine.svelte';
+    import { installVimExtensions } from './lib/editor/vim';
     import { installVimCommands } from './lib/editor/vimCommands';
     import { documentKindForPath, WritingEditor } from './lib/editor/writingEditor';
     import {
@@ -299,6 +300,7 @@
             );
             if (settings.vim) vimMode = 'normal';
 
+            installVimExtensions();
             installVimCommands({
                 write: (path, saveAs) => write(path, saveAs),
                 // Bare `:e` re-reads the current file (`:e!` reverts it); only an

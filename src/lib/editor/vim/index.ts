@@ -1,0 +1,14 @@
+import { registerDisplayLineMotions } from './displayLines';
+
+let registered = false;
+
+/**
+ * Registers Ernest's additions to the Vim engine: motions, actions and
+ * operators tuned for prose. The engine keeps one global keymap, so this runs
+ * once, however many editor states are created or hot reloads happen.
+ */
+export function installVimExtensions() {
+    if (registered) return;
+    registered = true;
+    registerDisplayLineMotions();
+}

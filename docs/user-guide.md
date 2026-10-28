@@ -50,6 +50,18 @@ With Settings → Autosave on, a document that has a file name is saved 1.5 seco
 
 Vim mode is on by default; turn it off under Settings → Vim mode. Normal, insert, visual (character, line, block) and replace modes, operators, text objects, counts, registers, marks, macros, `.` repeat, `/` and `?` search, and `:s` substitution are provided by [codemirror-vim](https://github.com/replit/codemirror-vim).
 
+### Keys tuned for prose
+
+A paragraph is one long line that wraps on screen, so the keys below work on the lines you see rather than on whole paragraphs.
+
+| Keys          | Effect                                                                                                |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| `j`, `k`      | Move down or up one line on screen. With an operator (`dj`, `yk`) they still act on whole paragraphs. |
+| `gj`, `gk`    | Move down or up one whole paragraph line.                                                             |
+| `0`, `^`, `$` | Go to the start, first non-blank character, or end of the line on screen.                             |
+| `A`, `I`      | Insert at the end or start of the line on screen.                                                     |
+| `H`, `L`      | Go to the first or last line visible in the window. A count counts lines inward, e.g. `3H`.           |
+
 ### Ex commands
 
 | Command           | Effect                                                                                                      |

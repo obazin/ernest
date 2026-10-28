@@ -61,6 +61,7 @@ src/lib/settings.ts              settings schema, defaults, validation
 src/lib/wordCount.ts             word counting
 src/lib/components/              StatusLine, SettingsPanel
 src/lib/editor/                  WritingEditor, typewriter, Vim commands, editor theme
+src/lib/editor/vim/              Vim motions, actions and operators tuned for prose
 src/lib/themes/palettes.ts       theme palettes and applyPalette
 src-tauri/src/                   lib.rs, documents.rs, fonts.rs, settings.rs, error.rs
 src-tauri/tauri.conf.json        app, window, bundle and CSP configuration
