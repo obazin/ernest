@@ -10,6 +10,7 @@
     import { installVimExtensions } from './lib/editor/vim';
     import { setClipboardSharing } from './lib/editor/vim/clipboard';
     import { applyEscapeSequence } from './lib/editor/vim/escapeSequence';
+    import { applyMappings } from './lib/editor/vim/mappings';
     import { installVimCommands } from './lib/editor/vimCommands';
     import { documentKindForPath, WritingEditor } from './lib/editor/writingEditor';
     import {
@@ -89,6 +90,7 @@
 
     $effect(() => setClipboardSharing(settings.vimClipboard));
     $effect(() => applyEscapeSequence(settings.vimEscapeSequence));
+    $effect(() => applyMappings(settings.vimMappings));
 
     $effect(() => {
         appWindow.setTitle(`${dirty ? '• ' : ''}${title} — Ernest`);

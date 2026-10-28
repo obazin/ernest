@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { backend } from '../backend';
+    import { parseMappings } from '../editor/vim/mappings';
     import { fontFamilyStack, limits, type BooleanSetting, type Settings } from '../settings';
     import { palettes } from '../themes/palettes';
 
@@ -15,6 +16,8 @@
     let fontsLoading = $state(true);
     let fontQuery = $state('');
     let panel: HTMLElement;
+
+    const mappingErrors = $derived(parseMappings(settings.vimMappings).errors);
 
     const filteredFonts = $derived.by(() => {
         const query = fontQuery.trim().toLowerCase();
@@ -197,6 +200,19 @@
                     bind:value={settings.vimEscapeSequence}
                 />
                 <span class="hint">Two or three keys typed quickly act as Escape</span>
+            </label>
+            <label class="mappings">
+                <span class="label">Mappings</span>
+                <span class="hint">One per line, as in a vimrc: nnoremap Y y$</span>
+                <textarea
+                    rows="5"
+                    placeholder={'" Comments start with a quote\nnnoremap Y y$'}
+                    spellcheck="false"
+                    autocomplete="off"
+                    bind:value={settings.vimMappings}></textarea>
+                {#each mappingErrors as error (error)}
+                    <span class="error">{error}</span>
+                {/each}
             </label>
         </section>
     {/if}
@@ -407,5 +423,38 @@
 
     .field .hint {
         grid-column: 1 / -1;
+    }
+
+    .mappings {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 6px 0;
+    }
+
+    .mappings .hint {
+        color: var(--color-muted);
+        font-size: 12px;
+    }
+
+    .mappings textarea {
+        padding: 6px 8px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        background: var(--color-background);
+        font-family: var(--editor-font-family);
+        font-size: 13px;
+        resize: vertical;
+        outline: none;
+    }
+
+    .mappings textarea:focus {
+        border-color: var(--color-accent);
+    }
+
+    /* The palettes have no error colour; the accent stands out on all of them. */
+    .mappings .error {
+        color: var(--color-accent);
+        font-size: 12px;
     }
 </style>

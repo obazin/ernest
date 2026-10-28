@@ -77,6 +77,19 @@ With Settings → Share clipboard with system on (the default), the unnamed regi
 
 Set Settings → Vim → Leave insert mode with to two or three keys, such as `jk`, to leave insert mode without reaching for Escape. Type the keys within 200 ms; typed more slowly, they are inserted as text.
 
+### Mappings
+
+Settings → Vim → Mappings takes mappings written as in a vimrc, one per line, and applies them at startup and as you edit them:
+
+```vim
+" Yank to the end of the line, like D and C
+nnoremap Y y$
+" Keep the selection after indenting
+vnoremap > >gv
+```
+
+The commands are `map`, `nmap`, `vmap` (or `xmap`), `imap`, `omap` and their `noremap` forms. `map :W :w` maps an ex command. Lines starting with `"` are comments; a line that is not a mapping is shown below the box and skipped. `:map` and `:unmap` typed in the editor work too, until Ernest quits.
+
 ### Ex commands
 
 | Command           | Effect                                                                                                      |
@@ -130,6 +143,7 @@ Open with Mod+,. Changes apply immediately and are saved automatically.
 | Vim mode                    | on                |                                  |
 | Share clipboard with system | on                | Vim mode only                    |
 | Leave insert mode with      | none              | two or three keys, Vim mode only |
+| Vim mappings                | none              | vimrc-style lines, Vim mode only |
 | Typewriter scrolling        | on                |                                  |
 | Focus mode                  | off               |                                  |
 | Live preview                | on                | Markdown documents only          |

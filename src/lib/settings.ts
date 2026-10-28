@@ -20,6 +20,8 @@ export interface Settings {
     vimClipboard: boolean;
     /** Typed quickly in Vim insert mode, leaves it like Escape (e.g. `jk`); empty for none. */
     vimEscapeSequence: string;
+    /** vimrc-style mapping lines (`nnoremap Y y$`), applied in Vim mode. */
+    vimMappings: string;
 }
 
 /** The settings that are on/off toggles. */
@@ -41,6 +43,7 @@ export const defaultSettings: Settings = {
     autosave: false,
     vimClipboard: true,
     vimEscapeSequence: '',
+    vimMappings: '',
 };
 
 export const limits = {
@@ -101,6 +104,7 @@ export function normalizeSettings(stored: unknown): Settings {
             isEscapeSequence(source.vimEscapeSequence)
                 ? source.vimEscapeSequence
                 : '',
+        vimMappings: typeof source.vimMappings === 'string' ? source.vimMappings : '',
     };
 }
 

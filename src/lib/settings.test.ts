@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { defaultSettings, fontFamilyStack, isEscapeSequence, normalizeSettings } from './settings';
 
 describe('normalizeSettings', () => {
+    it('keeps stored mappings as text and drops anything else', () => {
+        expect(normalizeSettings({ vimMappings: 'nmap Y y$' }).vimMappings).toBe('nmap Y y$');
+        expect(normalizeSettings({ vimMappings: 42 }).vimMappings).toBe('');
+    });
+
     it('falls back to defaults for anything that is not an object', () => {
         expect(normalizeSettings(null)).toEqual(defaultSettings);
         expect(normalizeSettings('garbage')).toEqual(defaultSettings);
