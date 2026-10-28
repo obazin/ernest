@@ -2,6 +2,7 @@ import { registerDisplayLineMotions } from './displayLines';
 import { registerHalfPageMotion } from './halfPage';
 import { registerHeadingMotion } from './headingMotion';
 import { registerOpenLine } from './openLine';
+import { registerReflowOperator } from './reflow';
 
 let registered = false;
 
@@ -17,4 +18,5 @@ export function installVimExtensions() {
     registerHalfPageMotion();
     registerHeadingMotion();
     registerOpenLine();
+    registerReflowOperator();
 }
