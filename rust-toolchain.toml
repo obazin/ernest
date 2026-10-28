@@ -1,6 +1,6 @@
 [toolchain]
 # Single Rust pin for the project; flake.nix reads this file, so the dev shell
 # and a plain `rustup` checkout agree on one toolchain.
-channel = "1.95.0"
+channel = "1.99.0"
 components = ["clippy", "rustfmt", "rust-src"]
 profile = "minimal"

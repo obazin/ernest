@@ -1,20 +1,21 @@
 [package]
-name = "hemingway"
+name = "ernest"
 version = "0.1.0"
 description = "Distraction-free writing app for Markdown and plain text, with a complete Vim mode."
 authors = ["Olivier Bazin"]
 edition = "2024"
+rust-version = "1.99"
 publish = false
-default-run = "Hemingway"
+default-run = "Ernest"
 
-# Capitalised so macOS shows "Hemingway" in the dock during `tauri dev`, where
+# Capitalised so macOS shows "Ernest" in the dock during `tauri dev`, where
 # the binary runs without an .app wrapper. Matches `mainBinaryName`.
 [[bin]]
-name = "Hemingway"
+name = "Ernest"
 path = "src/main.rs"
 
 [lib]
-name = "hemingway_lib"
+name = "ernest_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

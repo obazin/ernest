@@ -2,7 +2,7 @@
 
 ## The zen view
 
-Hemingway opens straight into a single column of text on an empty page. There are no toolbars, sidebars or menus to dismiss.
+Ernest opens straight into a single column of text on an empty page. There are no toolbars, sidebars or menus to dismiss.
 
 - **Fixed-width column.** The text column keeps the same width in pixels whatever the window size (680 px by default), so line length stays comfortable to read. Change it under Settings → Column width.
 - **Typewriter scrolling.** The line you are writing stays at the vertical centre of the window, and the text moves around it. This holds when typing, when moving with Vim motions, after jumps such as `G` or a search, and after resizing the window. Toggle it with Mod+Shift+T.
@@ -14,7 +14,7 @@ On macOS the title bar is hidden; drag the window by its top edge.
 
 ## Files
 
-Hemingway edits one document at a time.
+Ernest edits one document at a time.
 
 | Format                      | Extensions                                   | Treatment                                                                                                         |
 | --------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -32,7 +32,7 @@ Opening a path that does not exist yet (from the command line or with `:e`) give
 ### Opening a file on launch
 
 ```sh
-Hemingway path/to/chapter.md
+Ernest path/to/chapter.md
 ```
 
 In development: `just run path/to/chapter.md`.
@@ -106,11 +106,11 @@ Open with Mod+,. Changes apply immediately and are saved automatically.
 
 Settings are stored as JSON in:
 
-| Platform | Location                                                                 |
-| -------- | ------------------------------------------------------------------------ |
-| macOS    | `~/Library/Application Support/tech.seventhrank.hemingway/settings.json` |
-| Linux    | `~/.config/tech.seventhrank.hemingway/settings.json`                     |
-| Windows  | `%APPDATA%\tech.seventhrank.hemingway\settings.json`                     |
+| Platform | Location                                                             |
+| -------- | -------------------------------------------------------------------- |
+| macOS    | `~/Library/Application Support/it.olivierbazin.ernest/settings.json` |
+| Linux    | `~/.config/it.olivierbazin.ernest/settings.json`                     |
+| Windows  | `%APPDATA%\it.olivierbazin.ernest\settings.json`                     |
 
 The file can be edited by hand while the app is closed. Unknown keys are ignored, and invalid or out-of-range values fall back to their defaults, so a broken file never prevents startup.
 

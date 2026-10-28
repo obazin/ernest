@@ -1,6 +1,6 @@
 # Architecture
 
-Hemingway is a [Tauri 2](https://v2.tauri.app) application. A small Rust process owns the window, the file system and the system font list; the interface is a Svelte 5 single-page app rendered in the operating system's webview (WKWebView on macOS, WebView2 on Windows, WebKitGTK on Linux), with [CodeMirror 6](https://codemirror.net) as the editor.
+Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process owns the window, the file system and the system font list; the interface is a Svelte 5 single-page app rendered in the operating system's webview (WKWebView on macOS, WebView2 on Windows, WebKitGTK on Linux), with [CodeMirror 6](https://codemirror.net) as the editor.
 
 ```
 ┌──────────────────────── webview ────────────────────────┐
@@ -41,7 +41,7 @@ Errors are a single `thiserror` enum serialised as its display string: the front
 
 ### Atomic writes
 
-`write_atomically` resolves symlinks first (so the link survives), writes to a hidden sibling `.<name>.hemingway-<pid>`, calls `sync_all`, copies the original permissions, then renames over the target. Rename within one directory is atomic on every supported file system, so a crash or full disk mid-save leaves the previous version intact. The temporary file is removed if any step fails.
+`write_atomically` resolves symlinks first (so the link survives), writes to a hidden sibling `.<name>.ernest-<pid>`, calls `sync_all`, copies the original permissions, then renames over the target. Rename within one directory is atomic on every supported file system, so a crash or full disk mid-save leaves the previous version intact. The temporary file is removed if any step fails.
 
 ### Settings ownership
 

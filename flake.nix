@@ -1,7 +1,7 @@
 {
-  description = "hemingway — distraction-free writing app (Tauri + Svelte + CodeMirror 6)";
+  description = "ernest — distraction-free writing app (Tauri + Svelte + CodeMirror 6)";
 
-  # Self-contained rather than built on chess-flake: hemingway lives outside the
+  # Self-contained rather than built on chess-flake: ernest lives outside the
   # chess workspace, so it owns its own pins. The shell keeps the same shape as
   # chess-flake's `tauriShell` (toolchain from rust-toolchain.toml, sccache,
   # Node + pnpm + LSPs, zsh re-exec) so moving between projects feels the same.
@@ -129,7 +129,7 @@
       {
         devShells.default = pkgs.mkShell (
           {
-            name = "hemingway";
+            name = "ernest";
             packages = commonTools ++ rustTools ++ nodeTools ++ tauriTools ++ shorthands;
 
             RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
@@ -137,10 +137,10 @@
 
             shellHook = ''
               export CARGO_HOME="''${CARGO_HOME:-$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")/.cargo}"
-              echo "hemingway · $(date +%H:%M:%S)"
+              echo "ernest · $(date +%H:%M:%S)"
               export SHELL=${pkgs.zsh}/bin/zsh
-              if [[ $- == *i* && -z "''${IN_HEMINGWAY_ZSH:-}" ]]; then
-                export IN_HEMINGWAY_ZSH=1
+              if [[ $- == *i* && -z "''${IN_ERNEST_ZSH:-}" ]]; then
+                export IN_ERNEST_ZSH=1
                 exec ${pkgs.zsh}/bin/zsh
               fi
             '';

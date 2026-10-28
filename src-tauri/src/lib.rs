@@ -17,7 +17,7 @@ pub fn run() {
             settings::save_settings,
         ])
         .build(tauri::generate_context!())
-        .expect("error while building the Hemingway application");
+        .expect("error while building the Ernest application");
 
     app.run(|app, event| {
         // An application-level quit (Cmd+Q, the app menu) while a window is

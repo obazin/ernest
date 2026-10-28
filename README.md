@@ -1,4 +1,4 @@
-# Hemingway
+# Ernest
 
 A distraction-free writing app for Markdown and plain text, with a complete Vim mode. Runs on macOS, Windows and Linux.
 

@@ -28,7 +28,7 @@ pub async fn write_document(path: PathBuf, text: String) -> Result<PathBuf> {
     Ok(absolute(&path))
 }
 
-/// The file named on the command line (`hemingway notes.md`), if any. The
+/// The file named on the command line (`ernest notes.md`), if any. The
 /// file does not have to exist yet: like `vim new.md`, the first write
 /// creates it.
 #[tauri::command]
@@ -72,7 +72,7 @@ pub fn write_atomically(path: &Path, contents: &[u8]) -> Result<()> {
         .file_name()
         .map(|name| name.to_string_lossy().into_owned())
         .unwrap_or_default();
-    let temporary = directory.join(format!(".{file_name}.hemingway-{}", std::process::id()));
+    let temporary = directory.join(format!(".{file_name}.ernest-{}", std::process::id()));
 
     let result = (|| {
         let mut file = fs::File::create(&temporary)?;

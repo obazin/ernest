@@ -84,7 +84,7 @@
     });
 
     $effect(() => {
-        appWindow.setTitle(`${dirty ? '• ' : ''}${title} — Hemingway`);
+        appWindow.setTitle(`${dirty ? '• ' : ''}${title} — Ernest`);
     });
 
     // ── Persistence ─────────────────────────────────────────────────────────

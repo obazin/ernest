@@ -1,9 +1,9 @@
 {
     "$schema": "https://schema.tauri.app/config/2",
-    "productName": "Hemingway",
-    "mainBinaryName": "Hemingway",
+    "productName": "Ernest",
+    "mainBinaryName": "Ernest",
     "version": "0.1.0",
-    "identifier": "tech.seventhrank.hemingway",
+    "identifier": "it.olivierbazin.ernest",
     "build": {
         "beforeDevCommand": "pnpm dev",
         "beforeBuildCommand": "pnpm build",
@@ -14,7 +14,7 @@
         "windows": [
             {
                 "label": "main",
-                "title": "Hemingway",
+                "title": "Ernest",
                 "width": 1200,
                 "height": 860,
                 "minWidth": 480,
