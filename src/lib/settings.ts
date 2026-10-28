@@ -18,6 +18,8 @@ export interface Settings {
     autosave: boolean;
     /** In Vim mode, the unnamed register is the system clipboard. */
     vimClipboard: boolean;
+    /** Typed quickly in Vim insert mode, leaves it like Escape (e.g. `jk`); empty for none. */
+    vimEscapeSequence: string;
 }
 
 /** The settings that are on/off toggles. */
@@ -38,6 +40,7 @@ export const defaultSettings: Settings = {
     livePreview: true,
     autosave: false,
     vimClipboard: true,
+    vimEscapeSequence: '',
 };
 
 export const limits = {
@@ -93,7 +96,20 @@ export function normalizeSettings(stored: unknown): Settings {
         livePreview: boolean('livePreview'),
         autosave: boolean('autosave'),
         vimClipboard: boolean('vimClipboard'),
+        vimEscapeSequence:
+            typeof source.vimEscapeSequence === 'string' &&
+            isEscapeSequence(source.vimEscapeSequence)
+                ? source.vimEscapeSequence
+                : '',
     };
+}
+
+/**
+ * An insert-mode escape sequence is two or three keys, none of them a space
+ * or `<` (which would start a key name such as `<CR>`).
+ */
+export function isEscapeSequence(keys: string): boolean {
+    return /^[^\s<]{2,3}$/u.test(keys);
 }
 
 export function clamp(value: number, minimum: number, maximum: number): number {

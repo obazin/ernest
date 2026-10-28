@@ -9,6 +9,7 @@
     import StatusLine from './lib/components/StatusLine.svelte';
     import { installVimExtensions } from './lib/editor/vim';
     import { setClipboardSharing } from './lib/editor/vim/clipboard';
+    import { applyEscapeSequence } from './lib/editor/vim/escapeSequence';
     import { installVimCommands } from './lib/editor/vimCommands';
     import { documentKindForPath, WritingEditor } from './lib/editor/writingEditor';
     import {
@@ -87,6 +88,7 @@
     });
 
     $effect(() => setClipboardSharing(settings.vimClipboard));
+    $effect(() => applyEscapeSequence(settings.vimEscapeSequence));
 
     $effect(() => {
         appWindow.setTitle(`${dirty ? '• ' : ''}${title} — Ernest`);

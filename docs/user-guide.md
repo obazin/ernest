@@ -73,6 +73,10 @@ A paragraph is one long line that wraps on screen, so the keys below work on the
 
 With Settings → Share clipboard with system on (the default), the unnamed register is the system clipboard, like Vim's `clipboard=unnamedplus`: `y`, `d` and `c` copy to it, and `p` pastes from it, so text moves freely between Ernest and other applications. Turn it off to keep Vim's registers to yourself; the `+` register (`"+y`, `"+p`) still reaches the system clipboard.
 
+### Leaving insert mode
+
+Set Settings → Vim → Leave insert mode with to two or three keys, such as `jk`, to leave insert mode without reaching for Escape. Type the keys within 200 ms; typed more slowly, they are inserted as text.
+
 ### Ex commands
 
 | Command           | Effect                                                                                                      |
@@ -116,20 +120,21 @@ On Windows and Linux, Ctrl+O and Ctrl+N mean something in Vim (jump back, comple
 
 Open with Mod+,. Changes apply immediately and are saved automatically.
 
-| Setting                     | Default           | Range                      |
-| --------------------------- | ----------------- | -------------------------- |
-| Theme                       | Catppuccin Mocha  | see below                  |
-| Font                        | Default monospace | any installed font         |
-| Size                        | 18 px             | 10–40 px                   |
-| Line height                 | 1.70              | 1.00–2.50                  |
-| Column width                | 680 px            | 360–1400 px                |
-| Vim mode                    | on                |                            |
-| Share clipboard with system | on                | Vim mode only              |
-| Typewriter scrolling        | on                |                            |
-| Focus mode                  | off               |                            |
-| Live preview                | on                | Markdown documents only    |
-| Spell checking              | on                | uses the system dictionary |
-| Autosave                    | off               |                            |
+| Setting                     | Default           | Range                            |
+| --------------------------- | ----------------- | -------------------------------- |
+| Theme                       | Catppuccin Mocha  | see below                        |
+| Font                        | Default monospace | any installed font               |
+| Size                        | 18 px             | 10–40 px                         |
+| Line height                 | 1.70              | 1.00–2.50                        |
+| Column width                | 680 px            | 360–1400 px                      |
+| Vim mode                    | on                |                                  |
+| Share clipboard with system | on                | Vim mode only                    |
+| Leave insert mode with      | none              | two or three keys, Vim mode only |
+| Typewriter scrolling        | on                |                                  |
+| Focus mode                  | off               |                                  |
+| Live preview                | on                | Markdown documents only          |
+| Spell checking              | on                | uses the system dictionary       |
+| Autosave                    | off               |                                  |
 
 Settings are stored as JSON in:
 

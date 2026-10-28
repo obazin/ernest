@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSettings, fontFamilyStack, normalizeSettings } from './settings';
+import { defaultSettings, fontFamilyStack, isEscapeSequence, normalizeSettings } from './settings';
 
 describe('normalizeSettings', () => {
     it('falls back to defaults for anything that is not an object', () => {
@@ -27,6 +27,24 @@ describe('normalizeSettings', () => {
         expect(settings.columnWidth).toBe(defaultSettings.columnWidth);
         expect(settings.typewriter).toBe(defaultSettings.typewriter);
         expect(settings.vimClipboard).toBe(defaultSettings.vimClipboard);
+    });
+});
+
+describe('isEscapeSequence', () => {
+    it('accepts two or three keys', () => {
+        expect(isEscapeSequence('jk')).toBe(true);
+        expect(isEscapeSequence('jjk')).toBe(true);
+    });
+
+    it('refuses single keys, long sequences, spaces and key names', () => {
+        for (const keys of ['', 'j', 'jklm', 'j k', '<CR>', 'j<']) {
+            expect(isEscapeSequence(keys)).toBe(false);
+        }
+    });
+
+    it('drops an invalid stored sequence', () => {
+        expect(normalizeSettings({ vimEscapeSequence: 'j' }).vimEscapeSequence).toBe('');
+        expect(normalizeSettings({ vimEscapeSequence: 'jk' }).vimEscapeSequence).toBe('jk');
     });
 });
 

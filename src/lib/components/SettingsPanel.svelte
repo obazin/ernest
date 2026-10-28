@@ -182,6 +182,24 @@
             </label>
         {/each}
     </section>
+
+    {#if settings.vim}
+        <section>
+            <h3>Vim</h3>
+            <label class="field">
+                <span class="label">Leave insert mode with</span>
+                <input
+                    type="text"
+                    placeholder="e.g. jk"
+                    maxlength="3"
+                    spellcheck="false"
+                    autocomplete="off"
+                    bind:value={settings.vimEscapeSequence}
+                />
+                <span class="hint">Two or three keys typed quickly act as Escape</span>
+            </label>
+        </section>
+    {/if}
 </div>
 
 <style>
@@ -359,8 +377,35 @@
         accent-color: var(--color-accent);
     }
 
-    .toggle .hint {
+    .toggle .hint,
+    .field .hint {
         color: var(--color-muted);
         font-size: 12px;
+    }
+
+    .field {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        column-gap: 10px;
+        align-items: center;
+        padding: 6px 0;
+    }
+
+    .field input {
+        width: 8ch;
+        padding: 4px 8px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        background: var(--color-background);
+        font-family: var(--editor-font-family);
+        outline: none;
+    }
+
+    .field input:focus {
+        border-color: var(--color-accent);
+    }
+
+    .field .hint {
+        grid-column: 1 / -1;
     }
 </style>
