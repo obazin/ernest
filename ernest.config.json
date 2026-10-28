@@ -1,0 +1,8 @@
+{
+    "typewriter": {
+        "glide": {
+            "durationMs": 60,
+            "easing": "easeOut"
+        }
+    }
+}

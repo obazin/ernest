@@ -52,6 +52,7 @@ TypeScript is held at 6.x because `svelte-check` does not support 7 yet; `pnpm p
 ```
 flake.nix, rust-toolchain.toml   dev shell and toolchain pin
 Justfile                         task runner
+ernest.config.json               build-time tuning values, validated by src/lib/config.ts
 index.html, src/main.ts          entry point
 src/App.svelte                   document lifecycle, shortcuts, settings wiring
 src/app.css                      global styles and custom property defaults

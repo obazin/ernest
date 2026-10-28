@@ -1,5 +1,6 @@
 import { EditorState, StateEffect, StateField, type Extension } from '@codemirror/state';
 import { EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { config, easings } from '../config';
 
 /**
  * Typewriter scrolling: the line holding the cursor stays at the vertical
@@ -28,7 +29,11 @@ const centreEveryScroll = EditorView.scrollHandler.of((view, range) => {
         view.scrollDOM.scrollTop +
         visualLineCentre(view, range.head) -
         (bounds.top + bounds.height / 2);
-    if (view.state.field(scrollStyle, false) === 'animated' && !prefersReducedMotion()) {
+    if (
+        view.state.field(scrollStyle, false) === 'animated' &&
+        glideDuration > 0 &&
+        !prefersReducedMotion()
+    ) {
         glideTo(view, range.head, target);
     } else {
         stopGlide(view);
@@ -57,10 +62,8 @@ const scrollStyle = StateField.define<ScrollStyle>({
     },
 });
 
-const GLIDE_DURATION_MS = 60;
-
-/** Quadratic ease-out: starts at full speed, slows down on arrival. */
-const easeOut = (progress: number) => 1 - (1 - progress) * (1 - progress);
+const glideDuration = config.typewriter.glide.durationMs;
+const glideEasing = easings[config.typewriter.glide.easing];
 
 interface Glide {
     frame: number;
@@ -81,8 +84,8 @@ function glideTo(view: EditorView, position: number, target: number) {
     const startTime = performance.now();
     const glide: Glide = { frame: 0, target };
     const step = (now: number) => {
-        const progress = Math.min(1, (now - startTime) / GLIDE_DURATION_MS);
-        scroller.scrollTop = start + (target - start) * easeOut(progress);
+        const progress = Math.min(1, (now - startTime) / glideDuration);
+        scroller.scrollTop = start + (target - start) * glideEasing(progress);
         if (progress < 1) {
             glide.frame = requestAnimationFrame(step);
             return;
