@@ -63,6 +63,7 @@ A paragraph is one long line that wraps on screen, so the keys below work on the
 | `H`, `L`           | Go to the first or last line visible in the window. A count counts lines inward, e.g. `3H`.                                                                |
 | `Ctrl+D`, `Ctrl+U` | Move half a window down or up. A count moves that many lines instead, e.g. `5 Ctrl+D`.                                                                     |
 | `]]`, `[[`         | Go to the next or previous Markdown heading (the end or start of the document past the last one). Works with operators: `d]]` deletes to the next heading. |
+| `o`, `O`           | Open a line below or above. In a list or quote the new line continues it: `- `, `- [ ] `, the next number, `> `.                                           |
 
 ### Ex commands
 
