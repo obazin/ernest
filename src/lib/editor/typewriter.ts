@@ -62,6 +62,11 @@ const scrollStyle = StateField.define<ScrollStyle>({
     },
 });
 
+/** Whether typewriter scrolling is on, i.e. the view centres the cursor itself. */
+export function hasTypewriterScrolling(state: EditorState): boolean {
+    return state.field(scrollStyle, false) !== undefined;
+}
+
 const glideDuration = config.typewriter.glide.durationMs;
 const glideEasing = easings[config.typewriter.glide.easing];
 

@@ -1,4 +1,5 @@
 import { registerDisplayLineMotions } from './displayLines';
+import { registerHalfPageMotion } from './halfPage';
 
 let registered = false;
 
@@ -11,4 +12,5 @@ export function installVimExtensions() {
     if (registered) return;
     registered = true;
     registerDisplayLineMotions();
+    registerHalfPageMotion();
 }
