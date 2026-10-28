@@ -1,6 +1,6 @@
 import { markdownLanguage } from '@codemirror/lang-markdown';
 import { describe, expect, it } from 'vitest';
-import { skippedRanges, wordsIn } from './spelling';
+import { findMisspelling, skippedRanges, wordsIn } from './spelling';
 
 const texts = (text: string, skipped: [number, number][] = []) =>
     wordsIn(text, 0, skipped).map((word) => word.text);
@@ -51,5 +51,35 @@ describe('skippedRanges', () => {
         const tree = markdownLanguage.parser.parse(text);
         const skipped = skippedRanges(tree, 0, text.length);
         expect(texts(text, skipped)).toEqual(['Prose', 'link', 'bold']);
+    });
+});
+
+describe('findMisspelling', () => {
+    const words = wordsIn('one twoo three fourr five', 0);
+    const misspelled = (word: string) => word === 'twoo' || word === 'fourr';
+    const find = (position: number, forward: boolean, count = 1) =>
+        findMisspelling(words, position, forward, count, misspelled)?.text;
+
+    it('finds the next and previous misspelled word', () => {
+        expect(find(0, true)).toBe('twoo');
+        expect(find(10, true)).toBe('fourr');
+        expect(find(20, false)).toBe('fourr');
+        expect(find(10, false)).toBe('twoo');
+    });
+
+    it('does not stay on the word under the cursor', () => {
+        expect(find(4, true)).toBe('fourr');
+        expect(find(15, false)).toBe('twoo');
+    });
+
+    it('wraps around and honours a count', () => {
+        expect(find(20, true)).toBe('twoo');
+        expect(find(0, false)).toBe('fourr');
+        expect(find(0, true, 2)).toBe('fourr');
+        expect(find(0, true, 3)).toBe('twoo');
+    });
+
+    it('finds nothing when every word is known', () => {
+        expect(findMisspelling(words, 0, true, 1, () => false)).toBeUndefined();
     });
 });

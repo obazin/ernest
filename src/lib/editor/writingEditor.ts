@@ -16,6 +16,7 @@ import { editorTheme } from './editorTheme';
 import { livePreview } from './livePreview';
 import { spellChecking } from './spelling';
 import { typewriterScrolling } from './typewriter';
+import { spellingSuggestions } from './vim/spellingKeys';
 import { yankFlash } from './vim/yankFlash';
 
 export type DocumentKind = 'markdown' | 'plain-text';
@@ -150,7 +151,7 @@ export class WritingEditor {
 
     private vimExtensions(): Extension {
         if (!this.options.vim) return [];
-        return [vim(), yankFlash()];
+        return [vim(), yankFlash(), spellingSuggestions()];
     }
 
     private languageExtension(): Extension {

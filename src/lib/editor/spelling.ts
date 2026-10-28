@@ -200,3 +200,49 @@ const underliner = ViewPlugin.fromClass(
 export function spellChecking(): Extension {
     return underliner;
 }
+
+/** Whether spell checking is on in `view`. */
+export function isSpellChecking(view: EditorView): boolean {
+    return view.plugin(underliner) !== null;
+}
+
+/** The checkable word at `position` (or ending there), if any. */
+export function wordAt(state: EditorState, position: number): Word | undefined {
+    const line = state.doc.lineAt(position);
+    return documentWords(state, line.from, line.to).find(
+        (word) => word.from <= position && position <= word.to,
+    );
+}
+
+/**
+ * The `count`th misspelled word after (or before) `position`, wrapping
+ * around the document like Vim's `]s` and `[s`. `words` are in document
+ * order.
+ */
+export function findMisspelling(
+    words: readonly Word[],
+    position: number,
+    forward: boolean,
+    count: number,
+    misspelled: (word: string) => boolean = isMisspelled,
+): Word | undefined {
+    const candidates = words.filter((word) => misspelled(word.text));
+    if (candidates.length === 0) return undefined;
+    const ordered = forward ? candidates : [...candidates].reverse();
+    const start = ordered.findIndex((word) =>
+        forward ? word.from > position : word.from < position,
+    );
+    // Past the last one, carry on from the other end.
+    const first = start === -1 ? 0 : start;
+    return ordered[(first + count - 1) % ordered.length];
+}
+
+/** Records a word added to the personal dictionary. */
+export function markKnown(word: string) {
+    known.set(word, true);
+}
+
+/** Ignores a word for the rest of the session (Vim's `zG`). */
+export function ignoreWord(word: string) {
+    ignored.add(word);
+}

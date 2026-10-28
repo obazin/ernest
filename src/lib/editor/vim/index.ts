@@ -6,6 +6,7 @@ import { registerHeadingMotion } from './headingMotion';
 import { registerMoveLines } from './moveLines';
 import { registerOpenLine } from './openLine';
 import { registerReflowOperator } from './reflow';
+import { registerSpellingKeys } from './spellingKeys';
 
 let registered = false;
 
@@ -25,4 +26,5 @@ export function installVimExtensions() {
     registerMoveLines();
     registerClipboard();
     registerFolding();
+    registerSpellingKeys();
 }

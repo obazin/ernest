@@ -62,6 +62,21 @@ const chrome = EditorView.theme({
         textDecorationSkipInk: 'none',
         textUnderlineOffset: '3px',
     },
+    // Vim's `z=` list of corrections.
+    '.cm-tooltip:has(.cm-spelling-suggestions)': {
+        backgroundColor: 'var(--color-surface)',
+        color: 'var(--color-foreground)',
+        border: '1px solid var(--color-border)',
+        borderRadius: '6px',
+    },
+    '.cm-spelling-suggestions': {
+        padding: '4px 10px',
+        fontFamily: 'var(--interface-font-family)',
+        fontSize: '13px',
+    },
+    '.cm-spelling-suggestions ol': { margin: '0', paddingLeft: '2.2em' },
+    '.cm-spelling-suggestions li': { cursor: 'pointer', padding: '1px 0' },
+    '.cm-spelling-suggestions li::marker': { color: 'var(--color-muted)' },
     // Text just yanked in Vim mode, briefly.
     '.cm-yank-flash': {
         backgroundColor: 'color-mix(in srgb, var(--color-highlight) 45%, transparent)',

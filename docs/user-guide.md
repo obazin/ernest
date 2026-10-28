@@ -9,7 +9,7 @@ Ernest opens straight into a single column of text on an empty page. There are n
 - **Focus mode.** Dims every paragraph except the one holding the cursor. Toggle it with Mod+Shift+D.
 - **Live preview.** In Markdown documents, the syntax (`#`, `**`, `_`, backticks, `[…](…)`, `>`) is hidden and only its effect shows: a heading reads as a heading, a link as its text. The markup reappears on the line holding the cursor (every line of a selection), so you edit the raw text and see the result as soon as you move away. Bullets show as `•`, task boxes as `☐`/`☑`, horizontal rules as a line, and quotes keep a bar in the margin. Fenced code blocks and images are left as written. When the window loses focus, every line is shown rendered. Toggle it with Mod+Shift+P.
 - **Status line.** Shows the file name, a dot when there are unsaved changes, the Vim mode and the word count. It fades out as soon as you type and comes back when you pause or move the mouse. Messages such as `"notes.md" written` also appear there.
-- **Spell checking.** Unknown words get a wavy underline, checked against a built-in English (US) dictionary plus the words you add. Code, URLs, e-mail addresses and HTML are not checked, and a word is not judged while you are still typing it. Turn it off under Settings → Spell checking.
+- **Spell checking.** Unknown words get a wavy underline, checked against a built-in English (US) dictionary plus the words you add (see [Spelling](#spelling) for the Vim keys). Code, URLs, e-mail addresses and HTML are not checked, and a word is not judged while you are still typing it. Turn it off under Settings → Spell checking.
 - **Full screen.** Ctrl+Cmd+F on macOS, F11 elsewhere.
 
 On macOS the title bar is hidden; drag the window by its top edge.
@@ -77,6 +77,17 @@ With Settings → Share clipboard with system on (the default), the unnamed regi
 ### Leaving insert mode
 
 Set Settings → Vim → Leave insert mode with to two or three keys, such as `jk`, to leave insert mode without reaching for Escape. Type the keys within 200 ms; typed more slowly, they are inserted as text.
+
+### Spelling
+
+With spell checking on:
+
+| Keys       | Effect                                                                                                                                                |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `]s`, `[s` | Go to the next or previous misspelled word, wrapping around the document. A count skips that many.                                                    |
+| `z=`       | List up to nine corrections for the word under the cursor. Press a digit (or Enter for the first) to replace the word; any other key closes the list. |
+| `zg`       | Add the word under the cursor to your dictionary.                                                                                                     |
+| `zG`       | Ignore the word under the cursor until Ernest quits.                                                                                                  |
 
 ### Mappings
 
