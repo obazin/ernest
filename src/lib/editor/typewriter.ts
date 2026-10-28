@@ -1,4 +1,4 @@
-import { EditorState, type Extension } from '@codemirror/state';
+import { EditorState, StateEffect, StateField, type Extension } from '@codemirror/state';
 import { EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 
 /**
@@ -18,13 +18,109 @@ import { EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
  *
  * The content carries half a window of padding above and below (see
  * `--editor-vertical-padding`) so the first and last lines can reach centre.
+ *
+ * Navigation (a click, arrow keys, paragraph jumps, search) glides to the new
+ * line; typing and resizing jump, so the line being written never lags.
  */
 const centreEveryScroll = EditorView.scrollHandler.of((view, range) => {
     const bounds = view.scrollDOM.getBoundingClientRect();
-    view.scrollDOM.scrollTop +=
-        visualLineCentre(view, range.head) - (bounds.top + bounds.height / 2);
+    const target =
+        view.scrollDOM.scrollTop +
+        visualLineCentre(view, range.head) -
+        (bounds.top + bounds.height / 2);
+    if (view.state.field(scrollStyle, false) === 'animated' && !prefersReducedMotion()) {
+        glideTo(view, range.head, target);
+    } else {
+        stopGlide(view);
+        view.scrollDOM.scrollTop = target;
+    }
     return true;
 });
+
+type ScrollStyle = 'instant' | 'animated';
+
+/** Forces the next centring to jump, for scrolls the cursor did not cause. */
+const instantScroll = StateEffect.define<null>();
+
+/**
+ * How the cursor last moved: `animated` when only the selection changed,
+ * `instant` when the text changed. Scroll-only transactions (Vim's own
+ * "make it visible" after a motion) keep the style of the move before them.
+ */
+const scrollStyle = StateField.define<ScrollStyle>({
+    create: () => 'instant',
+    update(style, transaction) {
+        if (transaction.effects.some((effect) => effect.is(instantScroll))) return 'instant';
+        if (transaction.docChanged) return 'instant';
+        if (transaction.selection) return 'animated';
+        return style;
+    },
+});
+
+const GLIDE_DURATION_MS = 60;
+
+/** Quadratic ease-out: starts at full speed, slows down on arrival. */
+const easeOut = (progress: number) => 1 - (1 - progress) * (1 - progress);
+
+interface Glide {
+    frame: number;
+    target: number;
+}
+
+const glides = new WeakMap<EditorView, Glide>();
+
+function glideTo(view: EditorView, position: number, target: number) {
+    const running = glides.get(view);
+    // Vim requests a second scroll to the same place right after each motion;
+    // restarting would make every step take twice as long.
+    if (running && Math.abs(running.target - target) < 1) return;
+    stopGlide(view);
+
+    const scroller = view.scrollDOM;
+    const start = scroller.scrollTop;
+    const startTime = performance.now();
+    const glide: Glide = { frame: 0, target };
+    const step = (now: number) => {
+        const progress = Math.min(1, (now - startTime) / GLIDE_DURATION_MS);
+        scroller.scrollTop = start + (target - start) * easeOut(progress);
+        if (progress < 1) {
+            glide.frame = requestAnimationFrame(step);
+            return;
+        }
+        glides.delete(view);
+        settle(view, position);
+    };
+    glide.frame = requestAnimationFrame(step);
+    glides.set(view, glide);
+}
+
+function stopGlide(view: EditorView) {
+    const running = glides.get(view);
+    if (!running) return;
+    cancelAnimationFrame(running.frame);
+    glides.delete(view);
+}
+
+/**
+ * Corrects the last few pixels once a glide ends: a target outside the
+ * rendered viewport was only a height-map estimate, and the real line
+ * heights are known once it has scrolled into view.
+ */
+function settle(view: EditorView, position: number) {
+    view.requestMeasure({
+        read: (view) => {
+            const bounds = view.scrollDOM.getBoundingClientRect();
+            return visualLineCentre(view, position) - (bounds.top + bounds.height / 2);
+        },
+        write: (offset, view) => {
+            if (Math.abs(offset) >= 1) view.scrollDOM.scrollTop += offset;
+        },
+    });
+}
+
+function prefersReducedMotion(): boolean {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
 /**
  * Screen y of the middle of the visual (wrapped) line holding `position`.
@@ -70,12 +166,14 @@ const centreOnGeometryChange = ViewPlugin.fromClass(
             requestAnimationFrame(() => {
                 this.pending = false;
                 const head = update.view.state.selection.main.head;
-                update.view.dispatch({ effects: EditorView.scrollIntoView(head) });
+                update.view.dispatch({
+                    effects: [instantScroll.of(null), EditorView.scrollIntoView(head)],
+                });
             });
         }
     },
 );
 
 export function typewriterScrolling(): Extension {
-    return [centreEveryScroll, scrollOnCursorMove, centreOnGeometryChange];
+    return [scrollStyle, centreEveryScroll, scrollOnCursorMove, centreOnGeometryChange];
 }
