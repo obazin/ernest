@@ -22,3 +22,7 @@ just run           # dev build with hot reload; `just run notes.md` opens a file
 - [User guide](docs/user-guide.md): the zen view, files, Vim commands, shortcuts, settings, known limitations
 - [Architecture](docs/architecture.md): how the frontend and backend fit together, and why
 - [Development](docs/development.md): dev shell, checks, releases, and how to add a theme, setting or command
+
+## License
+
+[MIT](LICENSE) © 2026 Olivier Bazin
