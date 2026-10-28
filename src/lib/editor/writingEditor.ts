@@ -14,6 +14,7 @@ import { getCM, vim } from '@replit/codemirror-vim';
 import { editorTheme } from './editorTheme';
 import { livePreview } from './livePreview';
 import { typewriterScrolling } from './typewriter';
+import { yankFlash } from './vim/yankFlash';
 
 export type DocumentKind = 'markdown' | 'plain-text';
 
@@ -84,7 +85,7 @@ export class WritingEditor {
         this.options = options;
         const effects = [];
         if (previous.vim !== options.vim) {
-            effects.push(this.vimMode.reconfigure(options.vim ? vim() : []));
+            effects.push(this.vimMode.reconfigure(this.vimExtensions()));
         }
         if (previous.typewriter !== options.typewriter) {
             effects.push(
@@ -123,7 +124,7 @@ export class WritingEditor {
                 // unless told otherwise; keep Windows files in CRLF.
                 text.includes('\r\n') ? EditorState.lineSeparator.of('\r\n') : [],
                 // Vim must come before every other keymap so it sees keys first.
-                this.vimMode.of(this.options.vim ? vim() : []),
+                this.vimMode.of(this.vimExtensions()),
                 history(),
                 drawSelection(),
                 dropCursor(),
@@ -141,6 +142,11 @@ export class WritingEditor {
                 }),
             ],
         });
+    }
+
+    private vimExtensions(): Extension {
+        if (!this.options.vim) return [];
+        return [vim(), yankFlash()];
     }
 
     private languageExtension(): Extension {

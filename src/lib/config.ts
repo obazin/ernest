@@ -14,6 +14,13 @@ export interface Config {
             easing: Easing;
         };
     };
+    vim: {
+        /** The highlight on text just yanked. */
+        yankFlash: {
+            /** 0 turns the flash off. */
+            durationMs: number;
+        };
+    };
 }
 
 export const easings = {
@@ -37,12 +44,6 @@ export class ConfigError extends Error {
 export function parseConfig(source: unknown): Config {
     const typewriter = object(source, 'typewriter');
     const glide = object(typewriter, 'typewriter.glide');
-
-    const durationMs = glide.durationMs;
-    if (typeof durationMs !== 'number' || !Number.isFinite(durationMs) || durationMs < 0) {
-        throw new ConfigError('typewriter.glide.durationMs', 'a number of at least 0', durationMs);
-    }
-
     const easing = glide.easing;
     if (typeof easing !== 'string' || !Object.hasOwn(easings, easing)) {
         throw new ConfigError(
@@ -52,7 +53,27 @@ export function parseConfig(source: unknown): Config {
         );
     }
 
-    return { typewriter: { glide: { durationMs, easing: easing as Easing } } };
+    const vim = object(source, 'vim');
+    const yankFlash = object(vim, 'vim.yankFlash');
+
+    return {
+        typewriter: {
+            glide: {
+                durationMs: duration(glide, 'typewriter.glide.durationMs'),
+                easing: easing as Easing,
+            },
+        },
+        vim: { yankFlash: { durationMs: duration(yankFlash, 'vim.yankFlash.durationMs') } },
+    };
+}
+
+/** Reads `path`'s last segment from `parent`, requiring a number of milliseconds. */
+function duration(parent: Record<string, unknown>, path: string): number {
+    const value = parent[path.split('.').at(-1) as string];
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+        throw new ConfigError(path, 'a number of at least 0', value);
+    }
+    return value;
 }
 
 /** Reads `path`'s last segment from `parent`, requiring a plain object. */

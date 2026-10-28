@@ -48,7 +48,7 @@ With Settings → Autosave on, a document that has a file name is saved 1.5 seco
 
 ## Vim mode
 
-Vim mode is on by default; turn it off under Settings → Vim mode. Normal, insert, visual (character, line, block) and replace modes, operators, text objects, counts, registers, marks, macros, `.` repeat, `/` and `?` search, and `:s` substitution are provided by [codemirror-vim](https://github.com/replit/codemirror-vim).
+Vim mode is on by default; turn it off under Settings → Vim mode. Normal, insert, visual (character, line, block) and replace modes, operators, text objects, counts, registers, marks, macros, `.` repeat, `/` and `?` search, and `:s` substitution are provided by [codemirror-vim](https://github.com/replit/codemirror-vim). Yanked text is highlighted briefly so you can see what was copied.
 
 ### Keys tuned for prose
 

@@ -4,5 +4,10 @@
             "durationMs": 60,
             "easing": "easeOut"
         }
+    },
+    "vim": {
+        "yankFlash": {
+            "durationMs": 150
+        }
     }
 }

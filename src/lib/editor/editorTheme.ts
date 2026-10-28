@@ -56,6 +56,10 @@ const chrome = EditorView.theme({
     '.cm-searchMatch-selected': {
         backgroundColor: 'color-mix(in srgb, var(--color-highlight) 55%, transparent)',
     },
+    // Text just yanked in Vim mode, briefly.
+    '.cm-yank-flash': {
+        backgroundColor: 'color-mix(in srgb, var(--color-highlight) 45%, transparent)',
+    },
     '.cm-placeholder': { color: 'var(--color-muted)' },
     // Vim's `:` / `/` prompt, docked at the bottom like a status line.
     '.cm-panels': {
