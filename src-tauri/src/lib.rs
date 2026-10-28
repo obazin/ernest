@@ -7,6 +7,7 @@ use tauri::{Emitter, Manager, RunEvent};
 
 pub fn run() {
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             documents::read_document,

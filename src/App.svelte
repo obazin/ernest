@@ -8,6 +8,7 @@
     import SettingsPanel from './lib/components/SettingsPanel.svelte';
     import StatusLine from './lib/components/StatusLine.svelte';
     import { installVimExtensions } from './lib/editor/vim';
+    import { setClipboardSharing } from './lib/editor/vim/clipboard';
     import { installVimCommands } from './lib/editor/vimCommands';
     import { documentKindForPath, WritingEditor } from './lib/editor/writingEditor';
     import {
@@ -84,6 +85,8 @@
             livePreview: settings.livePreview,
         });
     });
+
+    $effect(() => setClipboardSharing(settings.vimClipboard));
 
     $effect(() => {
         appWindow.setTitle(`${dirty ? '• ' : ''}${title} — Ernest`);

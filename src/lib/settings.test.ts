@@ -20,11 +20,13 @@ describe('normalizeSettings', () => {
             fontSize: 400,
             columnWidth: Number.NaN,
             typewriter: 'yes',
+            vimClipboard: 0,
         });
         expect(settings.theme).toBe(defaultSettings.theme);
         expect(settings.fontSize).toBe(40);
         expect(settings.columnWidth).toBe(defaultSettings.columnWidth);
         expect(settings.typewriter).toBe(defaultSettings.typewriter);
+        expect(settings.vimClipboard).toBe(defaultSettings.vimClipboard);
     });
 });
 

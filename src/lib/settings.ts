@@ -16,7 +16,14 @@ export interface Settings {
     livePreview: boolean;
     /** Writes a named document shortly after typing stops. */
     autosave: boolean;
+    /** In Vim mode, the unnamed register is the system clipboard. */
+    vimClipboard: boolean;
 }
+
+/** The settings that are on/off toggles. */
+export type BooleanSetting = {
+    [Key in keyof Settings]: Settings[Key] extends boolean ? Key : never;
+}[keyof Settings];
 
 export const defaultSettings: Settings = {
     theme: defaultPaletteIdentifier,
@@ -30,6 +37,7 @@ export const defaultSettings: Settings = {
     spellcheck: true,
     livePreview: true,
     autosave: false,
+    vimClipboard: true,
 };
 
 export const limits = {
@@ -56,7 +64,14 @@ export function normalizeSettings(stored: unknown): Settings {
         return clamp(value, limits[key].minimum, limits[key].maximum);
     };
     const boolean = (
-        key: 'vim' | 'typewriter' | 'focusMode' | 'spellcheck' | 'livePreview' | 'autosave',
+        key:
+            | 'vim'
+            | 'typewriter'
+            | 'focusMode'
+            | 'spellcheck'
+            | 'livePreview'
+            | 'autosave'
+            | 'vimClipboard',
     ) => (typeof source[key] === 'boolean' ? source[key] : defaultSettings[key]);
 
     const theme =
@@ -77,6 +92,7 @@ export function normalizeSettings(stored: unknown): Settings {
         spellcheck: boolean('spellcheck'),
         livePreview: boolean('livePreview'),
         autosave: boolean('autosave'),
+        vimClipboard: boolean('vimClipboard'),
     };
 }
 

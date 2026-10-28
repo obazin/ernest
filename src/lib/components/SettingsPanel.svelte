@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { backend } from '../backend';
-    import { fontFamilyStack, limits, type Settings } from '../settings';
+    import { fontFamilyStack, limits, type BooleanSetting, type Settings } from '../settings';
     import { palettes } from '../themes/palettes';
 
     interface Props {
@@ -22,11 +22,16 @@
     });
 
     const toggles: {
-        key: 'vim' | 'typewriter' | 'focusMode' | 'spellcheck' | 'livePreview' | 'autosave';
+        key: BooleanSetting;
         label: string;
         hint: string;
     }[] = [
         { key: 'vim', label: 'Vim mode', hint: ':w :q :e :sav :enew :colo' },
+        {
+            key: 'vimClipboard',
+            label: 'Share clipboard with system',
+            hint: 'Vim yanks and pastes use the system clipboard',
+        },
         { key: 'typewriter', label: 'Typewriter scrolling', hint: 'Keep the current line centred' },
         { key: 'focusMode', label: 'Focus mode', hint: 'Dim every paragraph but this one' },
         {
