@@ -5,8 +5,8 @@
     import { getCurrentWindow } from '@tauri-apps/api/window';
     import { ask, open, save } from '@tauri-apps/plugin-dialog';
     import { backend } from './lib/backend';
-    import SettingsPanel from './lib/components/SettingsPanel.svelte';
-    import StatusLine from './lib/components/StatusLine.svelte';
+    import SettingsPanel from './lib/features/settings/organisms/SettingsPanel.svelte';
+    import StatusLine from './lib/features/status/organisms/StatusLine.svelte';
     import { installVimExtensions } from './lib/editor/vim';
     import { setClipboardSharing } from './lib/editor/vim/clipboard';
     import { applyEscapeSequence } from './lib/editor/vim/escapeSequence';

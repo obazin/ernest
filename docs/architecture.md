@@ -12,8 +12,8 @@ Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process ow
 │  │   ├─ livePreview      hides markup off the cursor line│
 │  │   ├─ spelling         underlines unknown words        │
 │  │   └─ editorTheme      colours/typography via CSS vars │
-│  ├─ StatusLine.svelte                                    │
-│  └─ SettingsPanel.svelte                                 │
+│  ├─ StatusLine     features/status                       │
+│  └─ SettingsPanel  features/settings, on design-system/  │
 │ backend.ts  ── invoke() ──┐                               │
 └───────────────────────────┼───────────────────────────────┘
                             ▼
