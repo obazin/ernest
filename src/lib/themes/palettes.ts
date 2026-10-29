@@ -371,6 +371,32 @@ export const palettes: Palette[] = [
             highlight: '#f6c177',
         },
     },
+    {
+        // Neutral greys only, for long sessions: the page stops short of white
+        // and the darkest ink short of black, so body text sits near 7.5:1
+        // rather than 21:1. Without hue, Markdown roles differ by lightness:
+        // headings and bold are the darkest ink, quotes and code the lightest.
+        identifier: 'monochrome-light',
+        name: 'Monochrome Light',
+        appearance: 'light',
+        colors: {
+            background: '#e4e4e4',
+            surface: '#dadada',
+            border: '#c9c9c9',
+            foreground: '#454545',
+            muted: '#7c7c7c',
+            accent: '#5a5a5a',
+            cursor: '#3c3c3c',
+            selection: '#c6c6c6',
+            heading: '#363636',
+            emphasis: '#555555',
+            strong: '#3a3a3a',
+            link: '#606060',
+            code: '#666666',
+            quote: '#6c6c6c',
+            highlight: '#a0a0a0',
+        },
+    },
 ];
 
 export const defaultPaletteIdentifier = 'catppuccin-mocha';

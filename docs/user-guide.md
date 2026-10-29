@@ -194,6 +194,7 @@ Each theme colours the whole window: the page, the text and Markdown syntax, the
 | `tokyo-night`          | Tokyo Night          | dark       |
 | `one-dark`             | One Dark             | dark       |
 | `rose-pine`            | Rosé Pine            | dark       |
+| `monochrome-light`     | Monochrome Light     | light      |
 
 ## Known limitations
 
