@@ -119,11 +119,11 @@
         "rust-projects": "rust-projects"
       },
       "locked": {
-        "lastModified": 1793219784,
-        "narHash": "sha256-gS9vS5TFugr5zUabzpcc8Hn/hhK3Immm/RRJkmz4q4M=",
+        "lastModified": 1793254306,
+        "narHash": "sha256-QaP2LnUCrhEsOLiblPjy69bcMKHoqcAFi0NqWRccoDk=",
         "owner": "obazin",
         "repo": "tauri-projects",
-        "rev": "d114844a7d5843ed923941bb0f84cf2987962bab",
+        "rev": "51e78a4679ea0f63bc7e14d91648b5ba3ac1cd30",
         "type": "github"
       },
       "original": {
