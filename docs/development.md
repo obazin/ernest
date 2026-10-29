@@ -46,7 +46,7 @@ TypeScript is held at 6.x because `svelte-check` does not support 7 yet; `pnpm p
 | `just release`                               | `pnpm tauri build`; bundles land in `src-tauri/target/release/bundle/`                                                           |
 | `just icons`                                 | Regenerate every platform icon from `app-icon.svg`                                                                               |
 
-`just check-targets` type-checks the Rust code only. Building a Windows or Linux bundle still needs that platform (or CI), because the webview libraries are linked natively.
+`just check-targets` type-checks the Rust code only. Build scripts that call another platform's native tools (the clipboard plugin's Objective-C, Tauri's Windows resource script, pkg-config lookups for the Linux webview and D-Bus libraries) get stand-ins that answer their probes and write empty outputs, since a type check never links; nothing extra needs installing. Building a Windows or Linux bundle still needs that platform (or CI), because the webview libraries are linked natively.
 
 ## Project layout
 

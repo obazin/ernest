@@ -26,24 +26,33 @@ check-targets:
 	#!/usr/bin/env bash
 	set -euo pipefail
 	cd src-tauri
-	# The clipboard plugin's macOS backend compiles an Objective-C file in a
-	# build script, which needs Apple's SDK. A type check never links, so a
-	# stand-in compiler that writes empty objects lets it run off a Mac
-	# (without sccache, which refuses to wrap a compiler it cannot identify).
+	# Some build scripts call another platform's native tools: the clipboard
+	# plugin compiles Objective-C against Apple's SDK, Tauri compiles the
+	# Windows resource script (icon, manifest), and the Linux webview and D-Bus
+	# crates look their system libraries up with pkg-config. A type check never
+	# links, so stand-ins that answer the probes and write empty outputs let
+	# every target check from any host, with nothing installed for it.
 	stub="$(mktemp -d)"
 	trap 'rm -rf "$stub"' EXIT
-	# It answers cc-rs's compiler probes like clang (`-E` names it, `-?` is
-	# refused), so it is given `-o` rather than MSVC's `-Fo`.
-	printf '#!/bin/sh\ncase " $*" in *" -E "*) echo clang; exit;; *" -?"*) exit 1;; esac\nwhile [ $# -gt 0 ]; do [ "$1" = -o ] && : > "$2"; shift; done\n' > "$stub/cc"
-	chmod +x "$stub/cc"
+	# C compiler. It answers cc-rs's probes like clang (`-E` prints its
+	# `"clang"` pragma message, `-?` is refused), so it is given `-o` rather
+	# than MSVC's `-Fo`. The `-E` answer also serves as the preprocessed
+	# resource script, which the stand-in resource compiler never reads.
+	printf '#!/bin/sh\ncase " $*" in *" -E "*) echo \047"clang"\047; exit;; *" -?"*) exit 1;; esac\nwhile [ $# -gt 0 ]; do [ "$1" = -o ] && : > "$2"; shift; done\n' > "$stub/cc"
+	# Resource compiler, in place of llvm-rc: embed-resource's `/?` probe looks
+	# for its banner, and the compiled resource goes to the file after `/fo`.
+	printf '#!/bin/sh\ncase " $*" in *" /?"*) echo "LLVM Resource Converter"; echo "  /no-preprocess"; exit;; esac\nwhile [ $# -gt 0 ]; do [ "$1" = /fo ] && : > "$2"; shift; done\n' > "$stub/rc"
+	# pkg-config: every package exists, at a version above any minimum, with
+	# no compiler or linker flags.
+	printf '#!/bin/sh\ncase " $*" in *" --modversion "*) echo 999.0;; esac\n' > "$stub/pkg-config"
+	chmod +x "$stub"/*
 	export CC_x86_64_apple_darwin="$stub/cc" AR_x86_64_apple_darwin=ar
+	export CC_x86_64_pc_windows_msvc="$stub/cc" RC_x86_64_pc_windows_msvc="$stub/rc"
+	export PKG_CONFIG_x86_64_unknown_linux_gnu="$stub/pkg-config" PKG_CONFIG_ALLOW_CROSS_x86_64_unknown_linux_gnu=1
 	for target in x86_64-apple-darwin x86_64-pc-windows-msvc x86_64-unknown-linux-gnu; do
 		echo "── $target"
-		if [ "$target" = x86_64-apple-darwin ]; then
-			env -u RUSTC_WRAPPER cargo check --target "$target"
-		else
-			cargo check --target "$target"
-		fi
+		# Without sccache, which refuses to wrap a compiler it cannot identify.
+		env -u RUSTC_WRAPPER cargo check --target "$target"
 	done
 
 format:
