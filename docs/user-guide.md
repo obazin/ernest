@@ -9,7 +9,7 @@ Ernest opens straight into a single column of text on an empty page. There are n
 - **Focus mode.** Dims every paragraph except the one holding the cursor. Toggle it with Mod+Shift+D.
 - **Live preview.** In Markdown documents, the syntax (`#`, `**`, `_`, backticks, `[…](…)`, `>`) is hidden and only its effect shows: a heading reads as a heading, a link as its text. The markup reappears on the line holding the cursor (every line of a selection), so you edit the raw text and see the result as soon as you move away. Bullets show as `•`, task boxes as `☐`/`☑`, horizontal rules as a line, and quotes keep a bar in the margin. Fenced code blocks and images are left as written. When the window loses focus, every line is shown rendered. Toggle it with Mod+Shift+P.
 - **Status line.** Shows the file name, a dot when there are unsaved changes, the Vim mode and the word count. It fades out as soon as you type and comes back when you pause or move the mouse. Messages such as `"notes.md" written` also appear there.
-- **Spell checking.** Unknown words get a wavy underline, checked against a built-in English (US) dictionary plus the words you add (see [Spelling](#spelling) for the Vim keys). Code, URLs, e-mail addresses and HTML are not checked, and a word is not judged while you are still typing it. Turn it off under Settings → Spell checking.
+- **Spell checking.** Unknown words get a wavy underline, checked against built-in dictionaries plus the words you add (see [Spelling](#spelling) for the Vim keys). English (US), French, Italian and Spanish are available: the first launch picks your system language when it is one of these (English (US) otherwise), and you can choose one or more under Settings → Spell checking. A word is accepted when any chosen language knows it, so a document mixing languages is checked in all of them. Elisions such as `l'école` or `dell'anno` count as one word. Code, URLs, e-mail addresses and HTML are not checked, and a word is not judged while you are still typing it. Turn it off under Settings → Spell checking.
 - **Full screen.** Ctrl+Cmd+F on macOS, F11 elsewhere.
 
 On macOS the title bar is hidden; drag the window by its top edge.
@@ -82,12 +82,12 @@ Set Settings → Vim → Leave insert mode with to two or three keys, such as `j
 
 With spell checking on:
 
-| Keys       | Effect                                                                                                                                                |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `]s`, `[s` | Go to the next or previous misspelled word, wrapping around the document. A count skips that many.                                                    |
-| `z=`       | List up to nine corrections for the word under the cursor. Press a digit (or Enter for the first) to replace the word; any other key closes the list. |
-| `zg`       | Add the word under the cursor to your dictionary.                                                                                                     |
-| `zG`       | Ignore the word under the cursor until Ernest quits.                                                                                                  |
+| Keys       | Effect                                                                                                                                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `]s`, `[s` | Go to the next or previous misspelled word, wrapping around the document. A count skips that many.                                                                                                     |
+| `z=`       | List up to nine corrections for the word under the cursor, taking the best of each chosen language in turn. Press a digit (or Enter for the first) to replace the word; any other key closes the list. |
+| `zg`       | Add the word under the cursor to your dictionary, which every language shares.                                                                                                                         |
+| `zG`       | Ignore the word under the cursor until Ernest quits.                                                                                                                                                   |
 
 ### Mappings
 
@@ -145,22 +145,23 @@ On Windows and Linux, Ctrl+O and Ctrl+N mean something in Vim (jump back, comple
 
 Open with Mod+,. Changes apply immediately and are saved automatically.
 
-| Setting                     | Default           | Range                            |
-| --------------------------- | ----------------- | -------------------------------- |
-| Theme                       | Catppuccin Mocha  | see below                        |
-| Font                        | Default monospace | any installed font               |
-| Size                        | 18 px             | 10–40 px                         |
-| Line height                 | 1.70              | 1.00–2.50                        |
-| Column width                | 680 px            | 360–1400 px                      |
-| Vim mode                    | on                |                                  |
-| Share clipboard with system | on                | Vim mode only                    |
-| Leave insert mode with      | none              | two or three keys, Vim mode only |
-| Vim mappings                | none              | vimrc-style lines, Vim mode only |
-| Typewriter scrolling        | on                |                                  |
-| Focus mode                  | off               |                                  |
-| Live preview                | on                | Markdown documents only          |
-| Spell checking              | on                | English (US), plus words you add |
-| Autosave                    | off               |                                  |
+| Setting                     | Default           | Range                                                       |
+| --------------------------- | ----------------- | ----------------------------------------------------------- |
+| Theme                       | Catppuccin Mocha  | see below                                                   |
+| Font                        | Default monospace | any installed font                                          |
+| Size                        | 18 px             | 10–40 px                                                    |
+| Line height                 | 1.70              | 1.00–2.50                                                   |
+| Column width                | 680 px            | 360–1400 px                                                 |
+| Vim mode                    | on                |                                                             |
+| Share clipboard with system | on                | Vim mode only                                               |
+| Leave insert mode with      | none              | two or three keys, Vim mode only                            |
+| Vim mappings                | none              | vimrc-style lines, Vim mode only                            |
+| Typewriter scrolling        | on                |                                                             |
+| Focus mode                  | off               |                                                             |
+| Live preview                | on                | Markdown documents only                                     |
+| Spell checking              | on                | plus words you add                                          |
+| Spelling languages          | system language   | any of English (US), French, Italian, Spanish; at least one |
+| Autosave                    | off               |                                                             |
 
 Settings are stored as JSON in:
 

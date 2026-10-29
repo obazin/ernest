@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import type { SpellingLanguage } from './settings';
 
 /** Typed wrappers over the Rust commands in `src-tauri/src`. */
 
@@ -17,9 +18,13 @@ export const backend = {
     listSystemFonts: () => invoke<string[]>('list_system_fonts'),
     loadSettings: () => invoke<unknown>('load_settings'),
     saveSettings: (settings: object) => invoke<void>('save_settings', { settings }),
-    /** Whether each word is spelled correctly, in order. */
-    checkWords: (words: string[]) => invoke<boolean[]>('check_words', { words }),
-    spellingSuggestions: (word: string) => invoke<string[]>('spelling_suggestions', { word }),
+    /** The system's preferred languages as BCP 47 tags, most preferred first. */
+    systemLanguages: () => invoke<string[]>('system_languages'),
+    /** Whether each word is spelled correctly in one of `languages`, in order. */
+    checkWords: (words: string[], languages: readonly SpellingLanguage[]) =>
+        invoke<boolean[]>('check_words', { words, languages }),
+    spellingSuggestions: (word: string, languages: readonly SpellingLanguage[]) =>
+        invoke<string[]>('spelling_suggestions', { word, languages }),
     /** Adds a word to the personal dictionary. */
     addToDictionary: (word: string) => invoke<void>('add_to_dictionary', { word }),
 };

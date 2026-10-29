@@ -2,7 +2,14 @@
     import { onMount } from 'svelte';
     import { backend } from '../backend';
     import { parseMappings } from '../editor/vim/mappings';
-    import { fontFamilyStack, limits, type BooleanSetting, type Settings } from '../settings';
+    import {
+        fontFamilyStack,
+        limits,
+        spellingLanguages,
+        type BooleanSetting,
+        type Settings,
+        type SpellingLanguage,
+    } from '../settings';
     import { palettes } from '../themes/palettes';
 
     interface Props {
@@ -42,7 +49,11 @@
             label: 'Live preview',
             hint: 'Hide Markdown syntax off the current line',
         },
-        { key: 'spellcheck', label: 'Spell checking', hint: 'English (US), plus words you add' },
+        {
+            key: 'spellcheck',
+            label: 'Spell checking',
+            hint: 'In the languages below, plus words you add',
+        },
         { key: 'autosave', label: 'Autosave', hint: 'Write named files when you pause' },
     ];
 
@@ -63,6 +74,15 @@
             .then((names) => (fonts = names))
             .finally(() => (fontsLoading = false));
     });
+
+    /** Adds or removes a spelling language, keeping their order and at least one. */
+    function toggleSpellingLanguage(code: SpellingLanguage) {
+        const chosen = settings.spellingLanguages;
+        if (chosen.includes(code) && chosen.length === 1) return;
+        settings.spellingLanguages = spellingLanguages
+            .map((language) => language.code)
+            .filter((candidate) => (candidate === code) !== chosen.includes(candidate));
+    }
 
     /** Inputs that take text in the writer's own font. */
     const textInput =
@@ -191,6 +211,31 @@
                     <span class="text-caption text-muted">{toggle.hint}</span>
                 </span>
             </label>
+            {#if toggle.key === 'spellcheck' && settings.spellcheck}
+                <div
+                    class="flex flex-wrap gap-1.5 pb-1.5 pl-6"
+                    role="group"
+                    aria-label="Spelling languages"
+                >
+                    {#each spellingLanguages as language (language.code)}
+                        {@const chosen = settings.spellingLanguages.includes(language.code)}
+                        {@const last = chosen && settings.spellingLanguages.length === 1}
+                        <button
+                            class={[
+                                'rounded-control border px-2 py-0.5 text-caption',
+                                last ? 'cursor-default' : 'cursor-pointer',
+                                chosen
+                                    ? 'border-accent bg-accent/25 text-foreground'
+                                    : 'border-border text-muted hover:bg-border',
+                            ]}
+                            aria-pressed={chosen}
+                            title={last ? 'At least one language stays on' : undefined}
+                            onclick={() => toggleSpellingLanguage(language.code)}
+                            >{language.name}</button
+                        >
+                    {/each}
+                </div>
+            {/if}
         {/each}
     </section>
 

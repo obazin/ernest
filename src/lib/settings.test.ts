@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSettings, fontFamilyStack, isEscapeSequence, normalizeSettings } from './settings';
+import {
+    defaultSettings,
+    fontFamilyStack,
+    isEscapeSequence,
+    normalizeSettings,
+    normalizeSpellingLanguages,
+    systemSpellingLanguages,
+} from './settings';
 
 describe('normalizeSettings', () => {
     it('keeps stored mappings as text and drops anything else', () => {
@@ -32,6 +39,46 @@ describe('normalizeSettings', () => {
         expect(settings.columnWidth).toBe(defaultSettings.columnWidth);
         expect(settings.typewriter).toBe(defaultSettings.typewriter);
         expect(settings.vimClipboard).toBe(defaultSettings.vimClipboard);
+    });
+});
+
+describe('normalizeSpellingLanguages', () => {
+    it('keeps known languages in a fixed order, once each', () => {
+        expect(normalizeSpellingLanguages(['es', 'fr', 'es'])).toEqual(['fr', 'es']);
+        expect(normalizeSpellingLanguages(['it', 'en-US'])).toEqual(['en-US', 'it']);
+    });
+
+    it('falls back to English when nothing usable is stored', () => {
+        for (const stored of [undefined, 'fr', [], ['de', 42]]) {
+            expect(normalizeSpellingLanguages(stored)).toEqual(['en-US']);
+        }
+    });
+});
+
+describe('systemSpellingLanguages', () => {
+    it('takes the first system language with a dictionary, by language alone', () => {
+        expect(systemSpellingLanguages(['de-DE', 'fr-CA', 'en-US'])).toEqual(['fr']);
+        expect(systemSpellingLanguages(['es-419'])).toEqual(['es']);
+        expect(systemSpellingLanguages(['en-GB'])).toEqual(['en-US']);
+        expect(systemSpellingLanguages(['it_IT'])).toEqual(['it']);
+    });
+
+    it('falls back to English (US)', () => {
+        expect(systemSpellingLanguages([])).toEqual(['en-US']);
+        expect(systemSpellingLanguages(['ja-JP', 'de'])).toEqual(['en-US']);
+    });
+
+    it('skips POSIX locales and empty tags, ignoring case', () => {
+        expect(systemSpellingLanguages(['C', 'POSIX', '', 'fR-Fr'])).toEqual(['fr']);
+    });
+});
+
+describe('spelling languages in normalizeSettings', () => {
+    it('takes the system language only when none is stored', () => {
+        expect(normalizeSettings({}, ['it-IT']).spellingLanguages).toEqual(['it']);
+        expect(
+            normalizeSettings({ spellingLanguages: ['es'] }, ['it-IT']).spellingLanguages,
+        ).toEqual(['es']);
     });
 });
 

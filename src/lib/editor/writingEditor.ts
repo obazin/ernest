@@ -14,7 +14,8 @@ import {
 import { getCM, vim } from '@replit/codemirror-vim';
 import { editorTheme } from './editorTheme';
 import { livePreview } from './livePreview';
-import { spellChecking } from './spelling';
+import type { SpellingLanguage } from '../settings';
+import { setSpellingLanguages, spellChecking, spellingRecheck } from './spelling';
 import { typewriterScrolling } from './typewriter';
 import { spellingSuggestions } from './vim/spellingKeys';
 import { yankFlash } from './vim/yankFlash';
@@ -26,6 +27,7 @@ export interface EditorOptions {
     typewriter: boolean;
     focusMode: boolean;
     spellcheck: boolean;
+    spellingLanguages: readonly SpellingLanguage[];
     /** Hides Markdown syntax outside the lines being edited. */
     livePreview: boolean;
 }
@@ -57,6 +59,7 @@ export class WritingEditor {
         private readonly callbacks: EditorCallbacks,
     ) {
         this.options = options;
+        setSpellingLanguages(options.spellingLanguages);
         this.view = new EditorView({
             parent,
             state: this.createState(''),
@@ -104,6 +107,9 @@ export class WritingEditor {
         }
         if (previous.spellcheck !== options.spellcheck) {
             effects.push(this.spelling.reconfigure(options.spellcheck ? spellChecking() : []));
+        }
+        if (setSpellingLanguages(options.spellingLanguages) && options.spellcheck) {
+            effects.push(spellingRecheck.of(null));
         }
         if (effects.length > 0) this.view.dispatch({ effects });
         if (previous.vim !== options.vim) {

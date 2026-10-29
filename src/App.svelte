@@ -84,6 +84,8 @@
             typewriter: settings.typewriter,
             focusMode: settings.focusMode,
             spellcheck: settings.spellcheck,
+            // Spread, so the effect also tracks the array's elements.
+            spellingLanguages: [...settings.spellingLanguages],
             livePreview: settings.livePreview,
         });
     });
@@ -291,7 +293,11 @@
         const cleanups: (() => void)[] = [];
 
         (async () => {
-            settings = normalizeSettings(await backend.loadSettings().catch(() => null));
+            const [stored, systemLanguages] = await Promise.all([
+                backend.loadSettings().catch(() => null),
+                backend.systemLanguages().catch(() => []),
+            ]);
+            settings = normalizeSettings(stored, systemLanguages);
             settingsLoaded = true;
 
             editor = new WritingEditor(
@@ -301,6 +307,7 @@
                     typewriter: settings.typewriter,
                     focusMode: settings.focusMode,
                     spellcheck: settings.spellcheck,
+                    spellingLanguages: [...settings.spellingLanguages],
                     livePreview: settings.livePreview,
                 },
                 { onChange: handleChange, onVimModeChange: (mode) => (vimMode = mode) },

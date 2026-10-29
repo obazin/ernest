@@ -31,6 +31,9 @@
         "active": true,
         "targets": "all",
         "category": "Productivity",
+        "resources": {
+            "dictionaries/": "dictionaries/"
+        },
         "shortDescription": "Distraction-free writing",
         "icon": [
             "icons/32x32.png",

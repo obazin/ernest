@@ -1,34 +1,67 @@
+use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+use serde::Deserialize;
 use spellbook::Dictionary;
-use tauri::{AppHandle, Manager, State};
+use tauri::path::BaseDirectory;
+use tauri::{AppHandle, Manager};
 
 use crate::documents::write_atomically;
 use crate::error::{Error, Result};
 
-/// The bundled en_US Hunspell dictionary (SCOWL, see `en_US.LICENSE.txt`).
-/// Bundled rather than read from the system so every platform spells alike;
-/// macOS and Windows have no Hunspell dictionaries to read.
-const AFFIXES: &str = include_str!("../dictionaries/en_US.aff");
-const WORDS: &str = include_str!("../dictionaries/en_US.dic");
+/// A language Ernest can spell. Its code names the Hunspell files in
+/// `dictionaries/` (`fr.aff`, `fr.dic`, with `fr.LICENSE.txt`), which ship
+/// as bundle resources rather than inside the binary: every platform spells
+/// alike, and each dictionary keeps its own licence.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize)]
+pub enum Language {
+    #[serde(rename = "en-US")]
+    EnglishUnitedStates,
+    #[serde(rename = "fr")]
+    French,
+    #[serde(rename = "it")]
+    Italian,
+    #[serde(rename = "es")]
+    Spanish,
+}
+
+impl Language {
+    fn code(self) -> &'static str {
+        match self {
+            Self::EnglishUnitedStates => "en-US",
+            Self::French => "fr",
+            Self::Italian => "it",
+            Self::Spanish => "es",
+        }
+    }
+}
 
 /// How many suggestions `z=` lists.
 const SUGGESTION_LIMIT: usize = 9;
 
-/// The dictionary plus the writer's own words, kept one per line in
-/// `dictionary.txt` next to the settings.
+/// Longer "words" are not judged, suggested for or learnt: Hunspell's own
+/// limit, and it bounds the work one call can ask for.
+const MAXIMUM_WORD_LENGTH: usize = 100;
+
+/// Far more than a rendered viewport holds.
+const MAXIMUM_WORDS_PER_CHECK: usize = 10_000;
+
+/// The dictionaries of the languages asked for so far, plus the writer's own
+/// words, kept one per line in `dictionary.txt` next to the settings and
+/// shared by every language.
 pub struct Speller {
-    dictionary: Dictionary,
+    dictionary_directory: PathBuf,
+    /// Parsed on first use: a writer who never spells in Italian never pays
+    /// for the Italian dictionary.
+    dictionaries: HashMap<Language, Dictionary>,
     personal: Vec<String>,
     personal_path: PathBuf,
 }
 
 impl Speller {
-    pub fn load(personal_path: PathBuf) -> Result<Self> {
-        let mut dictionary = Dictionary::new(AFFIXES, WORDS)
-            .map_err(|error| Error::Dictionary(error.to_string()))?;
+    pub fn load(dictionary_directory: PathBuf, personal_path: PathBuf) -> Result<Self> {
         let personal = match fs::read_to_string(&personal_path) {
             Ok(text) => text
                 .lines()
@@ -39,47 +72,131 @@ impl Speller {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Vec::new(),
             Err(error) => return Err(Error::io(&personal_path)(error)),
         };
-        for word in &personal {
-            add_to(&mut dictionary, word)?;
-        }
         Ok(Self {
-            dictionary,
+            dictionary_directory,
+            dictionaries: HashMap::new(),
             personal,
             personal_path,
         })
     }
 
-    pub fn check(&self, word: &str) -> bool {
-        self.dictionary.check(word)
+    /// Parses the dictionaries of `languages` not loaded yet, teaching each
+    /// the personal words.
+    fn prepare(&mut self, languages: &BTreeSet<Language>) -> Result<()> {
+        if languages.is_empty() {
+            return Err(Error::Dictionary("no spelling language chosen".into()));
+        }
+        for &language in languages {
+            if self.dictionaries.contains_key(&language) {
+                continue;
+            }
+            let read = |extension: &str| {
+                let path = self
+                    .dictionary_directory
+                    .join(format!("{}.{extension}", language.code()));
+                fs::read_to_string(&path).map_err(Error::io(path))
+            };
+            let mut dictionary = Dictionary::new(&read("aff")?, &read("dic")?)
+                .map_err(|error| Error::Dictionary(error.to_string()))?;
+            for word in &self.personal {
+                add_to(&mut dictionary, word)?;
+            }
+            self.dictionaries.insert(language, dictionary);
+        }
+        Ok(())
     }
 
-    pub fn suggest(&self, word: &str) -> Vec<String> {
-        let mut suggestions = Vec::new();
-        self.dictionary.suggest(word, &mut suggestions);
-        suggestions.truncate(SUGGESTION_LIMIT);
-        suggestions
+    fn dictionaries<'speller>(
+        &'speller self,
+        languages: &'speller BTreeSet<Language>,
+    ) -> impl Iterator<Item = &'speller Dictionary> {
+        languages
+            .iter()
+            .filter_map(|language| self.dictionaries.get(language))
     }
 
-    /// Teaches the dictionary `word` and appends it to the personal list.
+    /// Whether each word is spelled correctly in at least one of `languages`,
+    /// as Vim's `spelllang` with several languages.
+    pub fn check(&mut self, words: &[String], languages: &BTreeSet<Language>) -> Result<Vec<bool>> {
+        if words.len() > MAXIMUM_WORDS_PER_CHECK {
+            return Err(Error::Dictionary(format!(
+                "at most {MAXIMUM_WORDS_PER_CHECK} words per check"
+            )));
+        }
+        self.prepare(languages)?;
+        Ok(words
+            .iter()
+            .map(|word| {
+                !is_judged(word)
+                    || self
+                        .dictionaries(languages)
+                        .any(|dictionary| dictionary.check(word))
+            })
+            .collect())
+    }
+
+    /// Corrections from every language, best of each first: the first
+    /// suggestion of each language, then the second of each, and so on.
+    pub fn suggest(&mut self, word: &str, languages: &BTreeSet<Language>) -> Result<Vec<String>> {
+        if !is_judged(word) {
+            return Ok(Vec::new());
+        }
+        self.prepare(languages)?;
+        let lists: Vec<Vec<String>> = self
+            .dictionaries(languages)
+            .map(|dictionary| {
+                let mut suggestions = Vec::new();
+                dictionary.suggest(word, &mut suggestions);
+                suggestions
+            })
+            .collect();
+        let longest = lists.iter().map(Vec::len).max().unwrap_or(0);
+        let mut merged: Vec<String> = Vec::new();
+        for rank in 0..longest {
+            for suggestion in lists.iter().filter_map(|list| list.get(rank)) {
+                if !merged.contains(suggestion) {
+                    merged.push(suggestion.clone());
+                }
+            }
+        }
+        merged.truncate(SUGGESTION_LIMIT);
+        Ok(merged)
+    }
+
+    /// Appends `word` to the personal list, then teaches every loaded
+    /// dictionary; dictionaries loaded later learn it from the list. The file
+    /// is written first, so a failed write leaves nothing learnt that a
+    /// restart would forget.
     pub fn add(&mut self, word: &str) -> Result<()> {
         let word = word.trim();
         if !is_personal_word(word) || self.personal.iter().any(|known| known == word) {
             return Ok(());
         }
-        add_to(&mut self.dictionary, word)?;
-        self.personal.push(word.to_owned());
         if let Some(directory) = self.personal_path.parent() {
             fs::create_dir_all(directory).map_err(Error::io(directory))?;
         }
         let mut text = self.personal.join("\n");
+        if !text.is_empty() {
+            text.push('\n');
+        }
+        text.push_str(word);
         text.push('\n');
-        write_atomically(&self.personal_path, text.as_bytes())
+        write_atomically(&self.personal_path, text.as_bytes())?;
+        self.personal.push(word.to_owned());
+        for dictionary in self.dictionaries.values_mut() {
+            add_to(dictionary, word)?;
+        }
+        Ok(())
     }
+}
+
+fn is_judged(word: &str) -> bool {
+    word.chars().count() <= MAXIMUM_WORD_LENGTH
 }
 
 /// A personal entry is one word. `/` would start Hunspell affix flags.
 fn is_personal_word(word: &str) -> bool {
-    !word.is_empty() && !word.contains(['/', ' ', '\t'])
+    !word.is_empty() && is_judged(word) && !word.contains(['/', ' ', '\t'])
 }
 
 fn add_to(dictionary: &mut Dictionary, word: &str) -> Result<()> {
@@ -88,94 +205,179 @@ fn add_to(dictionary: &mut Dictionary, word: &str) -> Result<()> {
         .map_err(|error| Error::Dictionary(error.to_string()))
 }
 
-/// Loaded on first use: parsing the dictionary takes a moment, and a writer
-/// with spell checking off never pays for it.
+/// Created on first use, so a writer with spell checking off never reads the
+/// personal word list or a dictionary.
 #[derive(Default)]
 pub struct SpellingState(Mutex<Option<Speller>>);
 
-fn with_speller<T>(
-    app: &AppHandle,
-    state: &SpellingState,
-    action: impl FnOnce(&mut Speller) -> Result<T>,
+/// Runs `action` on the speller, creating it first if needed. Parsing a
+/// dictionary or computing suggestions takes tens of milliseconds per
+/// language, so it runs on the blocking pool rather than an async worker.
+async fn with_speller<T: Send + 'static>(
+    app: AppHandle,
+    action: impl FnOnce(&mut Speller) -> Result<T> + Send + 'static,
 ) -> Result<T> {
-    let mut slot = state
-        .0
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    if slot.is_none() {
-        let path = app.path().app_config_dir()?.join("dictionary.txt");
-        *slot = Some(Speller::load(path)?);
-    }
-    action(slot.as_mut().expect("loaded above"))
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<SpellingState>();
+        let mut slot = state
+            .0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if slot.is_none() {
+            let dictionaries = app
+                .path()
+                .resolve("dictionaries", BaseDirectory::Resource)
+                .map_err(|error| Error::Dictionary(error.to_string()))?;
+            let personal = app.path().app_config_dir()?.join("dictionary.txt");
+            *slot = Some(Speller::load(dictionaries, personal)?);
+        }
+        action(slot.as_mut().expect("loaded above"))
+    })
+    .await
+    .map_err(|error| Error::Dictionary(error.to_string()))?
 }
 
-/// Whether each word is spelled correctly, in order.
+/// Whether each word is spelled correctly in one of `languages`, in order.
 #[tauri::command]
 pub async fn check_words(
     app: AppHandle,
-    state: State<'_, SpellingState>,
     words: Vec<String>,
+    languages: BTreeSet<Language>,
 ) -> Result<Vec<bool>> {
-    with_speller(&app, &state, |speller| {
-        Ok(words.iter().map(|word| speller.check(word)).collect())
-    })
+    with_speller(app, move |speller| speller.check(&words, &languages)).await
 }
 
 #[tauri::command]
 pub async fn spelling_suggestions(
     app: AppHandle,
-    state: State<'_, SpellingState>,
     word: String,
+    languages: BTreeSet<Language>,
 ) -> Result<Vec<String>> {
-    with_speller(&app, &state, |speller| Ok(speller.suggest(&word)))
+    with_speller(app, move |speller| speller.suggest(&word, &languages)).await
 }
 
 #[tauri::command]
-pub async fn add_to_dictionary(
-    app: AppHandle,
-    state: State<'_, SpellingState>,
-    word: String,
-) -> Result<()> {
-    with_speller(&app, &state, |speller| speller.add(&word))
+pub async fn add_to_dictionary(app: AppHandle, word: String) -> Result<()> {
+    with_speller(app, move |speller| speller.add(&word)).await
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
 
     fn speller_in(directory: &tempfile::TempDir) -> Speller {
-        Speller::load(directory.path().join("dictionary.txt")).unwrap()
+        let dictionaries = Path::new(env!("CARGO_MANIFEST_DIR")).join("dictionaries");
+        Speller::load(dictionaries, directory.path().join("dictionary.txt")).unwrap()
     }
+
+    fn languages(list: &[Language]) -> BTreeSet<Language> {
+        list.iter().copied().collect()
+    }
+
+    fn checks(speller: &mut Speller, list: &[Language], words: &[&str]) -> Vec<bool> {
+        let words: Vec<String> = words.iter().map(|word| word.to_string()).collect();
+        speller.check(&words, &languages(list)).unwrap()
+    }
+
+    const ENGLISH: &[Language] = &[Language::EnglishUnitedStates];
 
     #[test]
     fn checks_words_against_the_bundled_dictionary() {
         let directory = tempfile::tempdir().unwrap();
-        let speller = speller_in(&directory);
-        assert!(speller.check("paragraph"));
-        assert!(speller.check("doesn't"));
-        assert!(!speller.check("paragrpah"));
+        let mut speller = speller_in(&directory);
+        let answers = checks(
+            &mut speller,
+            ENGLISH,
+            &["paragraph", "doesn't", "paragrpah"],
+        );
+        assert_eq!(answers, [true, true, false]);
+    }
+
+    #[test]
+    fn checks_french_italian_and_spanish_with_elision() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut speller = speller_in(&directory);
+        let french = checks(
+            &mut speller,
+            &[Language::French],
+            &["l'école", "jusqu'à", "écrivian"],
+        );
+        assert_eq!(french, [true, true, false]);
+        let italian = checks(
+            &mut speller,
+            &[Language::Italian],
+            &["dell'anno", "città", "scritore"],
+        );
+        assert_eq!(italian, [true, true, false]);
+        let spanish = checks(
+            &mut speller,
+            &[Language::Spanish],
+            &["niño", "cantábamos", "escritro"],
+        );
+        assert_eq!(spanish, [true, true, false]);
+    }
+
+    #[test]
+    fn accepts_a_word_known_to_any_chosen_language() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut speller = speller_in(&directory);
+        let both = [Language::EnglishUnitedStates, Language::French];
+        assert_eq!(checks(&mut speller, ENGLISH, &["aujourd'hui"]), [false]);
+        assert_eq!(
+            checks(&mut speller, &both, &["aujourd'hui", "paragraph"]),
+            [true, true]
+        );
+    }
+
+    #[test]
+    fn refuses_an_empty_language_list() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut speller = speller_in(&directory);
+        assert!(speller.check(&["word".into()], &BTreeSet::new()).is_err());
     }
 
     #[test]
     fn suggests_corrections() {
         let directory = tempfile::tempdir().unwrap();
-        let suggestions = speller_in(&directory).suggest("paragrpah");
+        let mut speller = speller_in(&directory);
+        let suggestions = speller.suggest("paragrpah", &languages(ENGLISH)).unwrap();
         assert!(suggestions.iter().any(|word| word == "paragraph"));
         assert!(suggestions.len() <= SUGGESTION_LIMIT);
     }
 
     #[test]
-    fn remembers_personal_words_across_loads() {
+    fn merges_suggestions_across_languages() {
         let directory = tempfile::tempdir().unwrap();
         let mut speller = speller_in(&directory);
-        assert!(!speller.check("Tauri"));
+        let both = languages(&[Language::EnglishUnitedStates, Language::Italian]);
+        let suggestions = speller.suggest("scritore", &both).unwrap();
+        assert!(suggestions.iter().any(|word| word == "scrittore"));
+        assert!(suggestions.len() <= SUGGESTION_LIMIT);
+        let unique: BTreeSet<&String> = suggestions.iter().collect();
+        assert_eq!(unique.len(), suggestions.len());
+    }
+
+    #[test]
+    fn remembers_personal_words_across_loads_and_languages() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut speller = speller_in(&directory);
+        assert_eq!(checks(&mut speller, ENGLISH, &["Tauri"]), [false]);
         speller.add("Tauri").unwrap();
         speller.add("Tauri").unwrap();
-        assert!(speller.check("Tauri"));
+        assert_eq!(checks(&mut speller, ENGLISH, &["Tauri"]), [true]);
+        // A dictionary loaded after the word was added learns it too.
+        assert_eq!(
+            checks(&mut speller, &[Language::Spanish], &["Tauri"]),
+            [true]
+        );
 
         let text = fs::read_to_string(directory.path().join("dictionary.txt")).unwrap();
         assert_eq!(text, "Tauri\n");
-        assert!(speller_in(&directory).check("Tauri"));
+        assert_eq!(
+            checks(&mut speller_in(&directory), &[Language::French], &["Tauri"]),
+            [true]
+        );
     }
 
     #[test]
@@ -184,6 +386,33 @@ mod tests {
         let mut speller = speller_in(&directory);
         speller.add("two words").unwrap();
         speller.add("flagged/G").unwrap();
+        speller.add(&"a".repeat(MAXIMUM_WORD_LENGTH + 1)).unwrap();
         assert!(!directory.path().join("dictionary.txt").exists());
+    }
+
+    #[test]
+    fn leaves_overlong_words_and_batches_alone() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut speller = speller_in(&directory);
+        let long = "q".repeat(MAXIMUM_WORD_LENGTH + 1);
+        assert_eq!(checks(&mut speller, ENGLISH, &[&long]), [true]);
+        assert!(
+            speller
+                .suggest(&long, &languages(ENGLISH))
+                .unwrap()
+                .is_empty()
+        );
+        let batch = vec![String::from("word"); MAXIMUM_WORDS_PER_CHECK + 1];
+        assert!(speller.check(&batch, &languages(ENGLISH)).is_err());
+    }
+
+    #[test]
+    fn keeps_every_personal_word_in_the_file() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut speller = speller_in(&directory);
+        speller.add("Tauri").unwrap();
+        speller.add("Ernest").unwrap();
+        let text = fs::read_to_string(directory.path().join("dictionary.txt")).unwrap();
+        assert_eq!(text, "Tauri\nErnest\n");
     }
 }

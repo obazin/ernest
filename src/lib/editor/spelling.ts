@@ -9,16 +9,18 @@ import {
 } from '@codemirror/view';
 import type { Tree } from '@lezer/common';
 import { backend } from '../backend';
+import { defaultSettings, type SpellingLanguage } from '../settings';
 
 /**
- * Spell checking against the dictionary the backend bundles (en_US Hunspell
- * plus the writer's own words). The webview's native checker cannot be
+ * Spell checking against the dictionaries the backend bundles (Hunspell, one
+ * per language) plus the writer's own words. A word is correct when any of
+ * the chosen languages knows it. The webview's native checker cannot be
  * queried for misspellings or suggestions, which the Vim keys need, so
  * Ernest draws its own underlines.
  *
  * The frontend finds the words, skipping code, URLs and HTML, and asks the
- * backend about the ones it has not seen; answers are cached per word for
- * the session, so scrolling and typing only ever send new words.
+ * backend about the ones it has not seen; answers are cached per word until
+ * the languages change, so scrolling and typing only ever send new words.
  */
 
 export interface Word {
@@ -90,7 +92,9 @@ export function wordsIn(text: string, offset: number, skipped: [number, number][
     return words;
 }
 
-/** Answers per word, shared by every editor for the session. */
+/** The languages words are checked in, shared by every editor. */
+let languages: readonly SpellingLanguage[] = defaultSettings.spellingLanguages;
+/** Answers per word for `languages`, shared by every editor. */
 const known = new Map<string, boolean>();
 /** Words ignored for the session (Vim's `zG`). */
 const ignored = new Set<string>();
@@ -99,12 +103,37 @@ export function isMisspelled(word: string): boolean {
     return known.get(word) === false && !ignored.has(word);
 }
 
+/**
+ * Checks words in `next` from now on. Resolves to false when they are the
+ * languages already in use; otherwise the cached answers are dropped and the
+ * editors must re-check (`spellingRecheck`).
+ */
+export function setSpellingLanguages(next: readonly SpellingLanguage[]): boolean {
+    if (
+        next.length === languages.length &&
+        next.every((code, index) => code === languages[index])
+    ) {
+        return false;
+    }
+    languages = [...next];
+    known.clear();
+    return true;
+}
+
 /** Asks the backend about the words not answered yet. */
 export async function checkWords(words: Iterable<string>): Promise<void> {
     const unknown = [...new Set(words)].filter((word) => !known.has(word));
     if (unknown.length === 0) return;
-    const answers = await backend.checkWords(unknown);
+    const asked = languages;
+    const answers = await backend.checkWords(unknown, asked);
+    // Answers for languages switched away from meanwhile no longer hold.
+    if (asked !== languages) return;
     unknown.forEach((word, index) => known.set(word, answers[index]));
+}
+
+/** Corrections for `word` in the chosen languages, best first. */
+export function suggestionsFor(word: string): Promise<string[]> {
+    return backend.spellingSuggestions(word, languages);
 }
 
 /** The words of the whole document (or of `from`–`to`), skipping non-prose. */
@@ -121,6 +150,9 @@ export function documentWords(state: EditorState, from = 0, to = state.doc.lengt
 
 /** Re-draws the underlines in every editor, after answers arrive or the word lists change. */
 export const spellingChanged = StateEffect.define<null>();
+
+/** Re-checks the visible words, after the languages change. */
+export const spellingRecheck = StateEffect.define<null>();
 
 const misspelledMark = Decoration.mark({ class: 'cm-misspelled' });
 
@@ -149,16 +181,20 @@ const underliner = ViewPlugin.fromClass(
         }
 
         update(update: ViewUpdate) {
+            const carries = (type: typeof spellingChanged) =>
+                update.transactions.some((transaction) =>
+                    transaction.effects.some((effect) => effect.is(type)),
+                );
+            const recheck = carries(spellingRecheck);
             const redraw =
+                recheck ||
                 update.docChanged ||
                 update.viewportChanged ||
                 update.selectionSet ||
                 update.focusChanged ||
-                update.transactions.some((transaction) =>
-                    transaction.effects.some((effect) => effect.is(spellingChanged)),
-                );
+                carries(spellingChanged);
             if (!redraw) return;
-            if (update.docChanged || update.viewportChanged) {
+            if (recheck || update.docChanged || update.viewportChanged) {
                 this.collect();
                 this.schedule();
             }

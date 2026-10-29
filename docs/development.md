@@ -65,7 +65,7 @@ src/lib/editor/                  WritingEditor, typewriter, spelling, Vim comman
 src/lib/editor/vim/              Vim motions, actions and operators tuned for prose
 src/lib/themes/palettes.ts       theme palettes and applyPalette
 src-tauri/src/                   lib.rs, documents.rs, fonts.rs, settings.rs, spelling.rs, error.rs
-src-tauri/dictionaries/          bundled en_US Hunspell dictionary and its licence
+src-tauri/dictionaries/          Hunspell dictionaries (en-US, fr, it, es), bundled as resources, with their licences
 src-tauri/tauri.conf.json        app, window, bundle and CSP configuration
 src-tauri/tauri.macos.conf.json  macOS window overrides (overlay title bar)
 src-tauri/capabilities/          webview permissions

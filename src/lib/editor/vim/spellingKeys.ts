@@ -10,6 +10,7 @@ import {
     isSpellChecking,
     markKnown,
     spellingChanged,
+    suggestionsFor,
     wordAt,
     type Word,
 } from '../spelling';
@@ -147,8 +148,7 @@ function suggest(cm: Adapter) {
     const view = viewOf(cm);
     const word = wordAt(view.state, view.state.selection.main.head);
     if (!word) return show(cm, 'No word under the cursor');
-    backend
-        .spellingSuggestions(word.text)
+    suggestionsFor(word.text)
         .then((replacements) => {
             if (view.state.sliceDoc(word.from, word.to) !== word.text) return;
             view.dispatch({ effects: openSuggestions.of({ word, replacements }) });

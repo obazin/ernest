@@ -12,6 +12,8 @@ export interface Settings {
     typewriter: boolean;
     focusMode: boolean;
     spellcheck: boolean;
+    /** A word is spelled correctly when any of these knows it; never empty. */
+    spellingLanguages: SpellingLanguage[];
     /** Hides Markdown syntax except on the lines being edited. */
     livePreview: boolean;
     /** Writes a named document shortly after typing stops. */
@@ -23,6 +25,16 @@ export interface Settings {
     /** vimrc-style mapping lines (`nnoremap Y y$`), applied in Vim mode. */
     vimMappings: string;
 }
+
+/** The languages the spell checker has a dictionary for, by the code the backend expects. */
+export const spellingLanguages = [
+    { code: 'en-US', name: 'English (US)' },
+    { code: 'fr', name: 'Français' },
+    { code: 'it', name: 'Italiano' },
+    { code: 'es', name: 'Español' },
+] as const;
+
+export type SpellingLanguage = (typeof spellingLanguages)[number]['code'];
 
 /** The settings that are on/off toggles. */
 export type BooleanSetting = {
@@ -39,6 +51,7 @@ export const defaultSettings: Settings = {
     typewriter: true,
     focusMode: false,
     spellcheck: true,
+    spellingLanguages: ['en-US'],
     livePreview: true,
     autosave: false,
     vimClipboard: true,
@@ -56,9 +69,14 @@ export const limits = {
  * Builds valid settings from whatever was stored: unknown keys are dropped,
  * missing or malformed values fall back to their default, and numbers are
  * clamped to their range. A settings file from an older or newer version
- * therefore never breaks startup.
+ * therefore never breaks startup. When no spelling languages are stored, as
+ * on first launch, they come from `systemLanguages` (BCP 47 tags, most
+ * preferred first).
  */
-export function normalizeSettings(stored: unknown): Settings {
+export function normalizeSettings(
+    stored: unknown,
+    systemLanguages: readonly string[] = [],
+): Settings {
     const source = (typeof stored === 'object' && stored !== null ? stored : {}) as Record<
         string,
         unknown
@@ -96,6 +114,10 @@ export function normalizeSettings(stored: unknown): Settings {
         typewriter: boolean('typewriter'),
         focusMode: boolean('focusMode'),
         spellcheck: boolean('spellcheck'),
+        spellingLanguages: normalizeSpellingLanguages(
+            source.spellingLanguages,
+            systemSpellingLanguages(systemLanguages),
+        ),
         livePreview: boolean('livePreview'),
         autosave: boolean('autosave'),
         vimClipboard: boolean('vimClipboard'),
@@ -106,6 +128,35 @@ export function normalizeSettings(stored: unknown): Settings {
                 : '',
         vimMappings: typeof source.vimMappings === 'string' ? source.vimMappings : '',
     };
+}
+
+/**
+ * The known languages in `stored`, in the order of `spellingLanguages` and
+ * without repeats, or `fallback` when none is left.
+ */
+export function normalizeSpellingLanguages(
+    stored: unknown,
+    fallback: readonly SpellingLanguage[] = defaultSettings.spellingLanguages,
+): SpellingLanguage[] {
+    if (!Array.isArray(stored)) return [...fallback];
+    const chosen = spellingLanguages
+        .map((language) => language.code)
+        .filter((code) => stored.includes(code));
+    return chosen.length > 0 ? chosen : [...fallback];
+}
+
+/**
+ * The spelling language for the first system language Ernest has a
+ * dictionary for, matched on the language alone (`fr-CA` → `fr`, `en-GB` →
+ * `en-US`), or English (US) when there is none.
+ */
+export function systemSpellingLanguages(systemLanguages: readonly string[]): SpellingLanguage[] {
+    for (const tag of systemLanguages) {
+        const primary = tag.split(/[-_]/)[0].toLowerCase();
+        const match = spellingLanguages.find((language) => language.code.split('-')[0] === primary);
+        if (match) return [match.code];
+    }
+    return [...defaultSettings.spellingLanguages];
 }
 
 /**

@@ -18,6 +18,7 @@ pub fn run() {
             fonts::list_system_fonts,
             settings::load_settings,
             settings::save_settings,
+            settings::system_languages,
             spelling::check_words,
             spelling::spelling_suggestions,
             spelling::add_to_dictionary,
