@@ -1,10 +1,74 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens. Components style themselves only through utilities built
+ * from these (`bg-surface`, `text-muted`, `text-caption`, `rounded-control`);
+ * Tailwind's stock palette is cleared so a raw colour cannot slip in.
+ *
+ * `static` keeps every variable in the build even when no class uses it: the
+ * CodeMirror theme reads them from TypeScript, which Tailwind does not scan.
+ */
+@theme static {
+    /* ── Colours: the palette roles of `src/lib/themes/palettes.ts` ─────── */
+    /* Catppuccin Mocha until `applyPalette` overwrites them on the root. */
+    --color-*: initial;
+    --color-background: #1e1e2e; /* page behind the text */
+    --color-surface: #181825; /* panels and overlays above the page */
+    --color-border: #313244; /* hairlines, inactive controls, hover fills */
+    --color-foreground: #cdd6f4; /* body text */
+    --color-muted: #7f849c; /* secondary text */
+    --color-accent: #cba6f7; /* interactive elements, the active control */
+    --color-cursor: #f5e0dc;
+    --color-selection: #45475a;
+    --color-heading: #b4befe;
+    --color-emphasis: #f5c2e7;
+    --color-strong: #fab387;
+    --color-link: #89b4fa;
+    --color-code: #a6e3a1;
+    --color-quote: #94e2d5;
+    --color-highlight: #f9e2af; /* search matches, transient highlights */
+
+    /* ── Fonts ─────────────────────────────────────────────────────────── */
+    --font-sans: system-ui, -apple-system, 'Segoe UI', 'Cantarell', 'Noto Sans', sans-serif;
+    /* The writer's chosen family; App.svelte overwrites it from the settings. */
+    --font-editor: ui-monospace, monospace;
+
+    /* ── Interface type scale ──────────────────────────────────────────── */
+    --text-label: 0.6875rem; /* 11px: section headings, key hints */
+    --text-caption: 0.75rem; /* 12px: status line, hints, theme cards */
+    --text-body: 0.8125rem; /* 13px: settings panel, editor overlays */
+    --text-title: 0.9375rem; /* 15px: panel title, font previews */
+
+    --tracking-status: 0.02em; /* status line */
+    --tracking-label: 0.08em; /* uppercase headings, the Vim mode */
+
+    /* ── Shapes and sizes ──────────────────────────────────────────────── */
+    --radius-control: 0.25rem; /* inputs, keys, list rows */
+    --radius-card: 0.375rem; /* theme cards, the font picker, tooltips */
+
+    --container-settings: 26.25rem; /* 420px: the settings panel */
+    --spacing-key-sequence: 8ch; /* a few keys and the placeholder, in the field's own font */
+
+    /* ── Motion ────────────────────────────────────────────────────────── */
+    --animate-panel-in: panel-in 160ms ease-out;
+
+    @keyframes panel-in {
+        from {
+            transform: translateX(1.5rem);
+            opacity: 0;
+        }
+    }
+}
+
+/* Lays out only the rows on screen, for long lists of differently styled rows. */
+@utility render-lazily {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 1.875rem;
+}
+
 :root {
-    --interface-font-family:
-        system-ui, -apple-system, 'Segoe UI', 'Cantarell', 'Noto Sans', sans-serif;
-    /* Overwritten at startup by `applyPalette` and the settings. */
-    --color-background: #1e1e2e;
-    --color-foreground: #cdd6f4;
-    --editor-font-family: ui-monospace, monospace;
+    /* Editor typography, overwritten from the settings by App.svelte and read
+       by the CodeMirror theme. */
     --editor-font-size: 18px;
     --editor-line-height: 1.7;
     --editor-column-width: 680px;
@@ -12,39 +76,19 @@
     --editor-dimmed-opacity: 0.3;
 }
 
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-}
+@layer base {
+    html,
+    body,
+    #app {
+        @apply h-full overflow-hidden;
+    }
 
-html,
-body,
-#app {
-    height: 100%;
-    margin: 0;
-    overflow: hidden;
-}
+    body {
+        /* The interface around the text never selects; the editor manages its own. */
+        @apply bg-background font-sans text-foreground antialiased select-none cursor-default;
+    }
 
-body {
-    background: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--interface-font-family);
-    -webkit-font-smoothing: antialiased;
-    /* The interface around the text never selects; the editor manages its own. */
-    user-select: none;
-    -webkit-user-select: none;
-    cursor: default;
-}
-
-button,
-input,
-select {
-    font: inherit;
-    color: inherit;
-}
-
-:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 2px;
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-accent;
+    }
 }

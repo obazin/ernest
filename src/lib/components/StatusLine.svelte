@@ -12,78 +12,35 @@
     let { title, dirty, words, vimMode, message, hidden }: Props = $props();
 
     const wordFormatter = new Intl.NumberFormat();
+
+    /** Colours the Vim mode by its first word (`visual line` → `visual`); normal stays muted. */
+    const modeColors: Record<string, string> = {
+        insert: 'text-code',
+        visual: 'text-emphasis',
+        replace: 'text-strong',
+    };
 </script>
 
-<footer class:hidden aria-live="polite">
-    <span class="title">
-        {title}{#if dirty}<span class="dirty" title="Unsaved changes"> •</span>{/if}
+<footer
+    class={[
+        'pointer-events-none fixed inset-x-0 bottom-0 flex items-center gap-4 px-4.5 pt-2 pb-2.5',
+        'text-caption tracking-status text-muted transition-opacity duration-400',
+        hidden ? 'opacity-0' : 'opacity-75',
+    ]}
+    aria-live="polite"
+>
+    <span class="truncate">
+        {title}{#if dirty}<span class="text-accent" title="Unsaved changes"> •</span>{/if}
     </span>
     {#if message}
-        <span class="message">{message}</span>
+        <span class="text-foreground">{message}</span>
     {/if}
-    <span class="right">
+    <span class="ml-auto flex gap-4 tabular-nums">
         {#if vimMode}
-            <span class="mode" data-mode={vimMode.split(' ')[0]}>{vimMode.toUpperCase()}</span>
+            <span class={['font-semibold tracking-label', modeColors[vimMode.split(' ')[0]]]}>
+                {vimMode.toUpperCase()}
+            </span>
         {/if}
         <span>{wordFormatter.format(words)} {words === 1 ? 'word' : 'words'}</span>
     </span>
 </footer>
-
-<style>
-    footer {
-        position: fixed;
-        inset: auto 0 0 0;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        padding: 8px 18px 10px;
-        font-size: 12px;
-        letter-spacing: 0.02em;
-        color: var(--color-muted);
-        opacity: 0.75;
-        transition: opacity 400ms ease;
-        pointer-events: none;
-    }
-
-    footer.hidden {
-        opacity: 0;
-    }
-
-    .title {
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-    }
-
-    .dirty {
-        color: var(--color-accent);
-    }
-
-    .message {
-        color: var(--color-foreground);
-    }
-
-    .right {
-        margin-left: auto;
-        display: flex;
-        gap: 16px;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .mode {
-        font-weight: 600;
-        letter-spacing: 0.08em;
-    }
-
-    .mode[data-mode='insert'] {
-        color: var(--color-code);
-    }
-
-    .mode[data-mode='visual'] {
-        color: var(--color-emphasis);
-    }
-
-    .mode[data-mode='replace'] {
-        color: var(--color-strong);
-    }
-</style>

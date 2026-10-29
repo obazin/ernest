@@ -46,6 +46,16 @@
         { key: 'autosave', label: 'Autosave', hint: 'Write named files when you pause' },
     ];
 
+    const sliders: {
+        key: keyof typeof limits;
+        label: string;
+        format: (value: number) => string;
+    }[] = [
+        { key: 'fontSize', label: 'Size', format: (value) => `${value}px` },
+        { key: 'lineHeight', label: 'Line height', format: (value) => value.toFixed(2) },
+        { key: 'columnWidth', label: 'Column width', format: (value) => `${value}px` },
+    ];
+
     onMount(() => {
         panel.focus();
         backend
@@ -53,6 +63,10 @@
             .then((names) => (fonts = names))
             .finally(() => (fontsLoading = false));
     });
+
+    /** Inputs that take text in the writer's own font. */
+    const textInput =
+        'rounded-control border border-border bg-background font-editor outline-none focus:border-accent';
 
     function handleKeydown(event: KeyboardEvent) {
         if (event.key === 'Escape') {
@@ -63,11 +77,20 @@
     }
 </script>
 
+{#snippet heading(text: string)}
+    <h3 class="mt-7 mb-2.5 text-label font-semibold tracking-label text-muted uppercase">
+        {text}
+    </h3>
+{/snippet}
+
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-<div class="backdrop" onclick={onclose}></div>
+<div class="fixed inset-0 bg-background/40" onclick={onclose}></div>
 
 <div
-    class="panel"
+    class={[
+        'fixed inset-y-0 right-0 w-settings max-w-full overflow-y-auto px-6 pt-9 pb-6',
+        'border-l border-border bg-surface text-body text-foreground outline-none animate-panel-in',
+    ]}
     role="dialog"
     aria-modal="true"
     aria-label="Settings"
@@ -75,18 +98,22 @@
     bind:this={panel}
     onkeydown={handleKeydown}
 >
-    <header>
-        <h2>Settings</h2>
-        <button class="close" onclick={onclose} aria-label="Close settings">esc</button>
+    <header class="flex items-baseline justify-between">
+        <h2 class="text-title font-semibold">Settings</h2>
+        <button
+            class="cursor-pointer rounded-control border border-border px-1.5 py-px text-label text-muted"
+            onclick={onclose}
+            aria-label="Close settings">esc</button
+        >
     </header>
 
     <section>
-        <h3>Theme</h3>
-        <div class="themes">
+        {@render heading('Theme')}
+        <div class="grid grid-cols-2 gap-2">
             {#each palettes as palette (palette.identifier)}
+                <!-- Each card previews its own palette, so its colours are data, not tokens. -->
                 <button
-                    class="theme"
-                    class:selected={settings.theme === palette.identifier}
+                    class="flex cursor-pointer flex-col items-start gap-2 rounded-card border-2 p-2.5 text-left text-caption"
                     style:background={palette.colors.background}
                     style:color={palette.colors.foreground}
                     style:border-color={settings.theme === palette.identifier
@@ -94,9 +121,9 @@
                         : palette.colors.border}
                     onclick={() => (settings.theme = palette.identifier)}
                 >
-                    <span class="swatches" aria-hidden="true">
+                    <span class="flex gap-1" aria-hidden="true">
                         {#each [palette.colors.heading, palette.colors.emphasis, palette.colors.link, palette.colors.code] as color, index (index)}
-                            <span style:background={color}></span>
+                            <span class="size-3 rounded-full" style:background={color}></span>
                         {/each}
                     </span>
                     {palette.name}
@@ -106,43 +133,27 @@
     </section>
 
     <section>
-        <h3>Typography</h3>
-        <label class="row">
-            <span>Size</span>
-            <input
-                type="range"
-                min={limits.fontSize.minimum}
-                max={limits.fontSize.maximum}
-                step={limits.fontSize.step}
-                bind:value={settings.fontSize}
-            />
-            <output>{settings.fontSize}px</output>
-        </label>
-        <label class="row">
-            <span>Line height</span>
-            <input
-                type="range"
-                min={limits.lineHeight.minimum}
-                max={limits.lineHeight.maximum}
-                step={limits.lineHeight.step}
-                bind:value={settings.lineHeight}
-            />
-            <output>{settings.lineHeight.toFixed(2)}</output>
-        </label>
-        <label class="row">
-            <span>Column width</span>
-            <input
-                type="range"
-                min={limits.columnWidth.minimum}
-                max={limits.columnWidth.maximum}
-                step={limits.columnWidth.step}
-                bind:value={settings.columnWidth}
-            />
-            <output>{settings.columnWidth}px</output>
-        </label>
+        {@render heading('Typography')}
+        {#each sliders as slider (slider.key)}
+            <label class="mb-2 flex items-center gap-3">
+                <span class="w-24 shrink-0">{slider.label}</span>
+                <input
+                    class="min-w-0 flex-1 accent-accent"
+                    type="range"
+                    min={limits[slider.key].minimum}
+                    max={limits[slider.key].maximum}
+                    step={limits[slider.key].step}
+                    bind:value={settings[slider.key]}
+                />
+                <output class="w-14 shrink-0 text-right text-muted tabular-nums">
+                    {slider.format(settings[slider.key])}
+                </output>
+            </label>
+        {/each}
 
-        <div class="font-picker">
+        <div class="mt-4 overflow-hidden rounded-card border border-border">
             <input
+                class="w-full border-b border-border bg-background px-2.5 py-2 outline-none"
                 type="search"
                 placeholder={fontsLoading
                     ? 'Loading system fonts…'
@@ -150,24 +161,19 @@
                 bind:value={fontQuery}
                 spellcheck="false"
             />
-            <ul role="listbox" aria-label="Font family">
-                <li>
-                    <button
-                        role="option"
-                        aria-selected={settings.fontFamily === ''}
-                        class:selected={settings.fontFamily === ''}
-                        style:font-family={fontFamilyStack('')}
-                        onclick={() => (settings.fontFamily = '')}>Default monospace</button
-                    >
-                </li>
-                {#each filteredFonts as name (name)}
-                    <li>
+            <ul class="h-60 overflow-y-auto p-1" role="listbox" aria-label="Font family">
+                {#each ['', ...filteredFonts] as name (name)}
+                    <li class="render-lazily">
                         <button
+                            class={[
+                                'w-full cursor-pointer truncate rounded-control px-2 py-1.25 text-left text-title',
+                                settings.fontFamily === name ? 'bg-accent/25' : 'hover:bg-border',
+                            ]}
                             role="option"
                             aria-selected={settings.fontFamily === name}
-                            class:selected={settings.fontFamily === name}
                             style:font-family={fontFamilyStack(name)}
-                            onclick={() => (settings.fontFamily = name)}>{name}</button
+                            onclick={() => (settings.fontFamily = name)}
+                            >{name || 'Default monospace'}</button
                         >
                     </li>
                 {/each}
@@ -176,22 +182,25 @@
     </section>
 
     <section>
-        <h3>Writing</h3>
+        {@render heading('Writing')}
         {#each toggles as toggle (toggle.key)}
-            <label class="toggle">
-                <input type="checkbox" bind:checked={settings[toggle.key]} />
-                <span class="label">{toggle.label}</span>
-                <span class="hint">{toggle.hint}</span>
+            <label class="flex cursor-pointer items-start gap-2.5 py-1.5">
+                <input class="accent-accent" type="checkbox" bind:checked={settings[toggle.key]} />
+                <span class="flex flex-col">
+                    <span>{toggle.label}</span>
+                    <span class="text-caption text-muted">{toggle.hint}</span>
+                </span>
             </label>
         {/each}
     </section>
 
     {#if settings.vim}
         <section>
-            <h3>Vim</h3>
-            <label class="field">
-                <span class="label">Leave insert mode with</span>
+            {@render heading('Vim')}
+            <label class="flex flex-wrap items-center gap-x-2.5 py-1.5">
+                <span class="flex-1">Leave insert mode with</span>
                 <input
+                    class={[textInput, 'w-key-sequence px-2 py-1']}
                     type="text"
                     placeholder="e.g. jk"
                     maxlength="3"
@@ -199,262 +208,27 @@
                     autocomplete="off"
                     bind:value={settings.vimEscapeSequence}
                 />
-                <span class="hint">Two or three keys typed quickly act as Escape</span>
+                <span class="basis-full text-caption text-muted"
+                    >Two or three keys typed quickly act as Escape</span
+                >
             </label>
-            <label class="mappings">
-                <span class="label">Mappings</span>
-                <span class="hint">One per line, as in a vimrc: nnoremap Y y$</span>
+            <label class="flex flex-col gap-1 py-1.5">
+                <span>Mappings</span>
+                <span class="text-caption text-muted"
+                    >One per line, as in a vimrc: nnoremap Y y$</span
+                >
                 <textarea
+                    class={[textInput, 'resize-y px-2 py-1.5 text-body']}
                     rows="5"
                     placeholder={'" Comments start with a quote\nnnoremap Y y$'}
                     spellcheck="false"
                     autocomplete="off"
                     bind:value={settings.vimMappings}></textarea>
+                <!-- The palettes have no error colour; the accent stands out on all of them. -->
                 {#each mappingErrors as error (error)}
-                    <span class="error">{error}</span>
+                    <span class="text-caption text-accent">{error}</span>
                 {/each}
             </label>
         </section>
     {/if}
 </div>
-
-<style>
-    .backdrop {
-        position: fixed;
-        inset: 0;
-        background: color-mix(in srgb, var(--color-background) 40%, transparent);
-    }
-
-    .panel {
-        position: fixed;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: min(420px, 100vw);
-        overflow-y: auto;
-        padding: 36px 24px 24px;
-        background: var(--color-surface);
-        color: var(--color-foreground);
-        border-left: 1px solid var(--color-border);
-        font-size: 13px;
-        outline: none;
-        animation: slide-in 160ms ease-out;
-    }
-
-    @keyframes slide-in {
-        from {
-            transform: translateX(24px);
-            opacity: 0;
-        }
-    }
-
-    header {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-    }
-
-    h2 {
-        margin: 0;
-        font-size: 15px;
-        font-weight: 600;
-    }
-
-    h3 {
-        margin: 28px 0 10px;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--color-muted);
-    }
-
-    button {
-        cursor: pointer;
-    }
-
-    .close {
-        border: 1px solid var(--color-border);
-        background: none;
-        border-radius: 4px;
-        padding: 1px 6px;
-        font-size: 11px;
-        color: var(--color-muted);
-    }
-
-    .themes {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-    }
-
-    .theme {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-        padding: 10px;
-        border: 2px solid;
-        border-radius: 6px;
-        text-align: left;
-        font-size: 12px;
-    }
-
-    .swatches {
-        display: flex;
-        gap: 4px;
-    }
-
-    .swatches span {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-    }
-
-    .row {
-        display: grid;
-        grid-template-columns: 96px 1fr 56px;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 8px;
-    }
-
-    .row output {
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-        color: var(--color-muted);
-    }
-
-    input[type='range'] {
-        accent-color: var(--color-accent);
-    }
-
-    .font-picker {
-        margin-top: 16px;
-        border: 1px solid var(--color-border);
-        border-radius: 6px;
-        overflow: hidden;
-    }
-
-    .font-picker input {
-        width: 100%;
-        padding: 8px 10px;
-        border: none;
-        border-bottom: 1px solid var(--color-border);
-        background: var(--color-background);
-        outline: none;
-    }
-
-    .font-picker ul {
-        list-style: none;
-        margin: 0;
-        padding: 4px;
-        height: 240px;
-        overflow-y: auto;
-    }
-
-    .font-picker li {
-        /* Hundreds of rows, each in its own font: skip laying out the hidden ones. */
-        content-visibility: auto;
-        contain-intrinsic-size: auto 30px;
-    }
-
-    .font-picker button {
-        width: 100%;
-        padding: 5px 8px;
-        border: none;
-        border-radius: 4px;
-        background: none;
-        text-align: left;
-        font-size: 15px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .font-picker button:hover {
-        background: var(--color-border);
-    }
-
-    .font-picker button.selected {
-        background: color-mix(in srgb, var(--color-accent) 25%, transparent);
-    }
-
-    .toggle {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        column-gap: 10px;
-        padding: 6px 0;
-        cursor: pointer;
-    }
-
-    .toggle input {
-        grid-row: span 2;
-        accent-color: var(--color-accent);
-    }
-
-    .toggle .hint,
-    .field .hint {
-        color: var(--color-muted);
-        font-size: 12px;
-    }
-
-    .field {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        column-gap: 10px;
-        align-items: center;
-        padding: 6px 0;
-    }
-
-    .field input {
-        width: 8ch;
-        padding: 4px 8px;
-        border: 1px solid var(--color-border);
-        border-radius: 4px;
-        background: var(--color-background);
-        font-family: var(--editor-font-family);
-        outline: none;
-    }
-
-    .field input:focus {
-        border-color: var(--color-accent);
-    }
-
-    .field .hint {
-        grid-column: 1 / -1;
-    }
-
-    .mappings {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        padding: 6px 0;
-    }
-
-    .mappings .hint {
-        color: var(--color-muted);
-        font-size: 12px;
-    }
-
-    .mappings textarea {
-        padding: 6px 8px;
-        border: 1px solid var(--color-border);
-        border-radius: 4px;
-        background: var(--color-background);
-        font-family: var(--editor-font-family);
-        font-size: 13px;
-        resize: vertical;
-        outline: none;
-    }
-
-    .mappings textarea:focus {
-        border-color: var(--color-accent);
-    }
-
-    /* The palettes have no error colour; the accent stands out on all of them. */
-    .mappings .error {
-        color: var(--color-accent);
-        font-size: 12px;
-    }
-</style>

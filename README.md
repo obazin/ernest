@@ -7,7 +7,7 @@ A distraction-free writing app for Markdown and plain text, with a complete Vim 
 - **Themes for the whole window:** Catppuccin, Darcula, Dracula, Nord, Gruvbox, Solarized, Tokyo Night, One Dark, Rosé Pine.
 - **Any installed font**, previewed in its own face.
 
-Built with Tauri 2 (Rust), Svelte 5 and CodeMirror 6.
+Built with Tauri 2 (Rust), Svelte 5, Tailwind CSS 4 and CodeMirror 6.
 
 ## Quick start
 

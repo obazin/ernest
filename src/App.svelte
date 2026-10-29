@@ -66,7 +66,7 @@
 
     $effect(() => {
         const root = document.documentElement.style;
-        root.setProperty('--editor-font-family', fontFamilyStack(settings.fontFamily));
+        root.setProperty('--font-editor', fontFamilyStack(settings.fontFamily));
         root.setProperty('--editor-font-size', `${settings.fontSize}px`);
         root.setProperty('--editor-line-height', String(settings.lineHeight));
         root.setProperty('--editor-column-width', `${settings.columnWidth}px`);
@@ -353,10 +353,10 @@
 
 {#if isMac}
     <!-- The title bar is an overlay on macOS: this strip keeps the window draggable. -->
-    <div class="drag-region" data-tauri-drag-region></div>
+    <div class="fixed inset-x-0 top-0 z-10 h-7" data-tauri-drag-region></div>
 {/if}
 
-<main bind:this={host}></main>
+<main class="h-full" bind:this={host}></main>
 
 <StatusLine {title} {dirty} {words} {vimMode} {message} hidden={typing && !message} />
 
@@ -369,16 +369,3 @@
         }}
     />
 {/if}
-
-<style>
-    main {
-        height: 100%;
-    }
-
-    .drag-region {
-        position: fixed;
-        inset: 0 0 auto 0;
-        height: 28px;
-        z-index: 10;
-    }
-</style>

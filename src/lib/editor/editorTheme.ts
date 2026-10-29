@@ -6,8 +6,9 @@ import { tags } from '@lezer/highlight';
 /**
  * One static editor theme for every palette: colours resolve through the CSS
  * custom properties `applyPalette` writes, and typography through the ones
- * the settings write (`--editor-*`). Changing theme or font is therefore a
- * style change on the root element, never an editor reconfiguration.
+ * the settings write (`--font-editor`, `--editor-*`). Changing theme or font
+ * is therefore a style change on the root element, never an editor
+ * reconfiguration.
  */
 const chrome = EditorView.theme({
     '&': {
@@ -18,7 +19,7 @@ const chrome = EditorView.theme({
     },
     '&.cm-focused': { outline: 'none' },
     '.cm-scroller': {
-        fontFamily: 'var(--editor-font-family)',
+        fontFamily: 'var(--font-editor)',
         lineHeight: 'var(--editor-line-height)',
         overflowX: 'hidden',
         // No scrollbar in a zen page; the wheel, trackpad and keys still scroll.
@@ -71,10 +72,10 @@ const chrome = EditorView.theme({
     },
     '.cm-spelling-suggestions': {
         padding: '4px 10px',
-        fontFamily: 'var(--interface-font-family)',
+        fontFamily: 'var(--font-sans)',
         fontSize: '13px',
     },
-    '.cm-spelling-suggestions ol': { margin: '0', paddingLeft: '2.2em' },
+    '.cm-spelling-suggestions ol': { margin: '0', paddingLeft: '2.2em', listStyle: 'decimal' },
     '.cm-spelling-suggestions li': { cursor: 'pointer', padding: '1px 0' },
     '.cm-spelling-suggestions li::marker': { color: 'var(--color-muted)' },
     // Text just yanked in Vim mode, briefly.
@@ -97,12 +98,12 @@ const chrome = EditorView.theme({
     '.cm-panels-bottom': { borderTop: '1px solid var(--color-border)' },
     '.cm-vim-panel': {
         padding: '4px 12px',
-        fontFamily: 'var(--interface-font-family)',
+        fontFamily: 'var(--font-sans)',
         fontSize: '13px',
     },
     '.cm-vim-panel input': {
         color: 'var(--color-foreground)',
-        fontFamily: 'var(--interface-font-family)',
+        fontFamily: 'var(--font-sans)',
     },
     // Paragraphs other than the one being written fade back (focus mode).
     '&.focus-mode .cm-line': { transition: 'opacity 160ms ease' },

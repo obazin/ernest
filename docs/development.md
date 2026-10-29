@@ -56,7 +56,7 @@ Justfile                         task runner
 ernest.config.json               build-time tuning values, validated by src/lib/config.ts
 index.html, src/main.ts          entry point
 src/App.svelte                   document lifecycle, shortcuts, settings wiring
-src/app.css                      global styles and custom property defaults
+src/app.css                      Tailwind entry: design tokens (@theme), base styles
 src/lib/backend.ts               typed wrappers over the Rust commands
 src/lib/settings.ts              settings schema, defaults, validation
 src/lib/wordCount.ts             word counting
@@ -86,6 +86,7 @@ See [architecture.md](architecture.md) for how the pieces interact.
 - Formatting: Prettier (4-space indent, single quotes, 100 columns) and rustfmt; run `just format`.
 - Markdown is not hard-wrapped: one paragraph per line.
 - Comments explain why, not what.
+- Components are styled with Tailwind utilities built from the tokens in `src/app.css`: semantic colours (`bg-surface`, `text-muted`, `border-border`, `text-accent`), the interface type scale (`text-label`, `text-caption`, `text-body`, `text-title`), `tracking-*`, `rounded-control`/`rounded-card` and Tailwind's 4px spacing grid. No `<style>` blocks, no raw colours, no arbitrary values in brackets (`text-[13px]`): when nothing fits, add a token with a semantic name to `@theme`. There is no `dark:` variant; a theme is a palette applied at runtime. Inline `style:` is for values that are data, such as a theme card previewing its own palette.
 
 ## Recipes
 
@@ -95,12 +96,12 @@ See [architecture.md](architecture.md) for how the pieces interact.
 2. Its `identifier` is the name used by `:colo`, so keep it lowercase and hyphenated.
 3. Add it to the table in [user-guide.md](user-guide.md#themes).
 
-Nothing else changes: the settings panel and `:colo` read the array.
+Nothing else changes: the settings panel and `:colo` read the array. A new palette role also needs a `--color-<role>` token in `src/app.css`'s `@theme`.
 
 ### Add a setting
 
 1. Add the field to `Settings`, `defaultSettings` and `normalizeSettings` in `src/lib/settings.ts` (plus `limits` for a number), and a case in `settings.test.ts`.
-2. Apply it in `App.svelte`: a CSS custom property in the typography `$effect`, or a new `EditorOptions` field passed to `editor.configure`.
+2. Apply it in `App.svelte`: a CSS custom property in the typography `$effect` (declared in `src/app.css`), or a new `EditorOptions` field passed to `editor.configure`.
 3. For an editor toggle, give it a compartment in `WritingEditor` and handle it in `configure`.
 4. Expose it in `SettingsPanel.svelte` (the `toggles` list handles booleans).
 5. Document it in the user guide's settings table.

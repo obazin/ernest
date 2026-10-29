@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import tailwindcss from '@tailwindcss/vite';
 
 // Options tailored for `tauri dev` / `tauri build`.
 export default defineConfig({
-    plugins: [svelte()],
+    plugins: [tailwindcss(), svelte()],
     // Keep Rust compiler errors visible in the terminal.
     clearScreen: false,
     server: {

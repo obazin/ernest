@@ -1,6 +1,6 @@
 # Architecture
 
-Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process owns the window, the file system and the system font list; the interface is a Svelte 5 single-page app rendered in the operating system's webview (WKWebView on macOS, WebView2 on Windows, WebKitGTK on Linux), with [CodeMirror 6](https://codemirror.net) as the editor.
+Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process owns the window, the file system and the system font list; the interface is a Svelte 5 single-page app styled with [Tailwind CSS 4](https://tailwindcss.com), rendered in the operating system's webview (WKWebView on macOS, WebView2 on Windows, WebKitGTK on Linux), with [CodeMirror 6](https://codemirror.net) as the editor.
 
 ```
 ┌──────────────────────── webview ────────────────────────┐
@@ -98,13 +98,14 @@ Each command maps to a `DiscardPolicy`: `refuse` (Vim's `E37` message) without a
 
 A theme is a `Palette` of semantic roles (`background`, `surface`, `border`, `foreground`, `muted`, `accent`, `cursor`, `selection`, `heading`, `emphasis`, `strong`, `link`, `code`, `quote`, `highlight`) in `src/lib/themes/palettes.ts`.
 
-`applyPalette` writes each role to a CSS custom property on the document root (`--color-background`, …) and sets `color-scheme`. The editor theme (`editorTheme.ts`) and every Svelte component read only those properties. Typography is passed the same way (`--editor-font-family`, `--editor-font-size`, `--editor-line-height`, `--editor-column-width`, `--editor-vertical-padding`).
+`applyPalette` writes each role to a CSS custom property on the document root (`--color-background`, …) and sets `color-scheme`. The same properties are the colour tokens of Tailwind's `@theme` in `src/app.css`, declared with Catppuccin Mocha's values, so the Svelte components style themselves with semantic utilities (`bg-surface`, `text-muted`, `border-border`) that resolve through `var(--color-…)` and follow the palette. The editor theme (`editorTheme.ts`) reads the same properties directly. Typography is passed the same way: `--font-editor` is a theme token too (`font-editor`), and `--editor-font-size`, `--editor-line-height`, `--editor-column-width` and `--editor-vertical-padding` are plain custom properties only the editor theme reads.
 
 Consequences:
 
 - Switching theme or font is a style change on one element; the editor is never reconfigured.
 - There is exactly one CodeMirror theme and one `HighlightStyle`, whose colours are `var(--color-…)` references.
 - The interface and the text can never disagree about colours.
+- Tailwind's stock palette is cleared (`--color-*: initial`), so no component can use a colour that ignores the theme. The theme is declared `static`, which keeps every token in the stylesheet even when only TypeScript (the editor theme) refers to it.
 
 Markdown highlighting relies on the tags emitted by `@lezer/markdown`. Rules for tags applied to a whole subtree (`BulletList/...` → `list`, `Link/...` → `link`) are combined with the inner node's tags and the later CSS rule wins, so the style deliberately has no rule for `tags.list`; otherwise list items would override inline code and links inside them.
 
