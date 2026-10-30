@@ -27,6 +27,8 @@ export interface EditorOptions {
     typewriter: boolean;
     /** Where typewriter scrolling holds the cursor line, in percent of the window height. */
     typewriterAnchor: number;
+    /** How long typewriter scrolling glides to a new line, in milliseconds. */
+    typewriterGlide: number;
     focusMode: boolean;
     spellcheck: boolean;
     spellingLanguages: readonly SpellingLanguage[];
@@ -98,7 +100,8 @@ export class WritingEditor {
         }
         if (
             previous.typewriter !== options.typewriter ||
-            previous.typewriterAnchor !== options.typewriterAnchor
+            previous.typewriterAnchor !== options.typewriterAnchor ||
+            previous.typewriterGlide !== options.typewriterGlide
         ) {
             effects.push(this.typewriter.reconfigure(this.typewriterExtension()));
         }
@@ -175,7 +178,9 @@ export class WritingEditor {
     }
 
     private typewriterExtension(): Extension {
-        return this.options.typewriter ? typewriterScrolling(this.options.typewriterAnchor) : [];
+        return this.options.typewriter
+            ? typewriterScrolling(this.options.typewriterAnchor, this.options.typewriterGlide)
+            : [];
     }
 
     private attributeExtensions(): Extension {

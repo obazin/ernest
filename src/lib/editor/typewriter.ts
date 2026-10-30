@@ -31,11 +31,7 @@ const anchorEveryScroll = EditorView.scrollHandler.of((view, range) => {
         0,
         view.scrollDOM.scrollTop + visualLineCentre(view, range.head) - anchorY(view),
     );
-    if (
-        view.state.field(scrollStyle, false) === 'animated' &&
-        glideDuration > 0 &&
-        !prefersReducedMotion()
-    ) {
+    if (view.state.field(scrollStyle, false) === 'animated' && !prefersReducedMotion()) {
         glideTo(view, range.head, target);
     } else {
         stopGlide(view);
@@ -80,7 +76,11 @@ function anchorY(view: EditorView): number {
     return bounds.top + bounds.height * view.state.facet(anchor);
 }
 
-const glideDuration = config.typewriter.glide.durationMs;
+/** How long a glide takes, in milliseconds. */
+const glideDuration = Facet.define<number, number>({
+    combine: (values) => values[0] ?? 120,
+});
+
 const glideEasing = easings[config.typewriter.glide.easing];
 
 interface Glide {
@@ -100,9 +100,10 @@ function glideTo(view: EditorView, position: number, target: number) {
     const scroller = view.scrollDOM;
     const start = scroller.scrollTop;
     const startTime = performance.now();
+    const duration = view.state.facet(glideDuration);
     const glide: Glide = { frame: 0, target };
     const step = (now: number) => {
-        const progress = Math.min(1, (now - startTime) / glideDuration);
+        const progress = Math.min(1, (now - startTime) / duration);
         scroller.scrollTop = start + (target - start) * glideEasing(progress);
         if (progress < 1) {
             glide.frame = requestAnimationFrame(step);
@@ -196,10 +197,14 @@ const anchorOnGeometryChange = ViewPlugin.fromClass(
     },
 );
 
-/** Typewriter scrolling around an anchor `anchorPercent` % from the top of the window. */
-export function typewriterScrolling(anchorPercent: number): Extension {
+/**
+ * Typewriter scrolling around an anchor `anchorPercent` % from the top of
+ * the window, gliding to new lines in `glideMilliseconds`.
+ */
+export function typewriterScrolling(anchorPercent: number, glideMilliseconds: number): Extension {
     return [
         anchor.of(anchorPercent / 100),
+        glideDuration.of(glideMilliseconds),
         scrollStyle,
         anchorEveryScroll,
         scrollOnCursorMove,

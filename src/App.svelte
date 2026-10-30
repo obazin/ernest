@@ -83,6 +83,7 @@
             vim: settings.vim,
             typewriter: settings.typewriter,
             typewriterAnchor: settings.typewriterAnchor,
+            typewriterGlide: settings.typewriterGlide,
             focusMode: settings.focusMode,
             spellcheck: settings.spellcheck,
             // Spread, so the effect also tracks the array's elements.
@@ -307,6 +308,7 @@
                     vim: settings.vim,
                     typewriter: settings.typewriter,
                     typewriterAnchor: settings.typewriterAnchor,
+                    typewriterGlide: settings.typewriterGlide,
                     focusMode: settings.focusMode,
                     spellcheck: settings.spellcheck,
                     spellingLanguages: [...settings.spellingLanguages],

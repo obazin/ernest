@@ -7,10 +7,11 @@ import rawConfig from '../../ernest.config.json';
  */
 export interface Config {
     typewriter: {
-        /** The scroll to a new line when the cursor moves without typing. */
+        /**
+         * The scroll to a new line when the cursor moves without typing; its
+         * duration is a user setting.
+         */
         glide: {
-            /** 0 turns gliding off. */
-            durationMs: number;
             easing: Easing;
         };
     };
@@ -58,10 +59,7 @@ export function parseConfig(source: unknown): Config {
 
     return {
         typewriter: {
-            glide: {
-                durationMs: duration(glide, 'typewriter.glide.durationMs'),
-                easing: easing as Easing,
-            },
+            glide: { easing: easing as Easing },
         },
         vim: { yankFlash: { durationMs: duration(yankFlash, 'vim.yankFlash.durationMs') } },
     };

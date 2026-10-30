@@ -15,6 +15,8 @@ export interface Settings {
      * scrolling holds the cursor line once the text reaches it.
      */
     typewriterAnchor: number;
+    /** How long typewriter scrolling takes to glide to a line the cursor moved to, in milliseconds. */
+    typewriterGlide: number;
     focusMode: boolean;
     spellcheck: boolean;
     /** A word is spelled correctly when any of these knows it; never empty. */
@@ -55,6 +57,7 @@ export const defaultSettings: Settings = {
     vim: true,
     typewriter: true,
     typewriterAnchor: 50,
+    typewriterGlide: 120,
     focusMode: false,
     spellcheck: true,
     spellingLanguages: ['en-US'],
@@ -70,6 +73,7 @@ export const limits = {
     lineHeight: { minimum: 1, maximum: 2.5, step: 0.05 },
     columnWidth: { minimum: 360, maximum: 1400, step: 20 },
     typewriterAnchor: { minimum: 40, maximum: 80, step: 1 },
+    typewriterGlide: { minimum: 50, maximum: 500, step: 10 },
 } as const;
 
 /**
@@ -120,6 +124,7 @@ export function normalizeSettings(
         vim: boolean('vim'),
         typewriter: boolean('typewriter'),
         typewriterAnchor: number('typewriterAnchor'),
+        typewriterGlide: number('typewriterGlide'),
         focusMode: boolean('focusMode'),
         spellcheck: boolean('spellcheck'),
         spellingLanguages: normalizeSpellingLanguages(

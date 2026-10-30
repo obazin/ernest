@@ -124,6 +124,15 @@
                         format={(value) => `${value}%`}
                         bind:value={settings.typewriterAnchor}
                     />
+                    <SliderField
+                        label="Glide"
+                        disabled={!settings.typewriter}
+                        minimum={limits.typewriterGlide.minimum}
+                        maximum={limits.typewriterGlide.maximum}
+                        step={limits.typewriterGlide.step}
+                        format={(value) => `${value} ms`}
+                        bind:value={settings.typewriterGlide}
+                    />
                 </div>
             {/if}
             {#if toggle.key === 'spellcheck' && settings.spellcheck}

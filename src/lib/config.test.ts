@@ -3,7 +3,7 @@ import { ConfigError, easings, parseConfig } from './config';
 import rawConfig from '../../ernest.config.json';
 
 const vim = { yankFlash: { durationMs: 150 } };
-const valid = { typewriter: { glide: { durationMs: 60, easing: 'easeOut' } }, vim };
+const valid = { typewriter: { glide: { easing: 'easeOut' } }, vim };
 
 describe('parseConfig', () => {
     it('accepts the shipped file', () => {
@@ -22,7 +22,7 @@ describe('parseConfig', () => {
     it('rejects negative or non-numeric durations', () => {
         for (const durationMs of [-1, '60', Number.NaN]) {
             expect(() =>
-                parseConfig({ typewriter: { glide: { durationMs, easing: 'linear' } }, vim }),
+                parseConfig({ typewriter: valid.typewriter, vim: { yankFlash: { durationMs } } }),
             ).toThrow(ConfigError);
         }
     });
@@ -37,9 +37,9 @@ describe('parseConfig', () => {
 
     it('rejects unknown easings, including inherited keys', () => {
         for (const easing of ['bounce', 'toString']) {
-            expect(() =>
-                parseConfig({ typewriter: { glide: { durationMs: 60, easing } }, vim }),
-            ).toThrow(/one of linear, easeIn, easeOut, easeInOut/);
+            expect(() => parseConfig({ typewriter: { glide: { easing } }, vim })).toThrow(
+                /one of linear, easeIn, easeOut, easeInOut/,
+            );
         }
     });
 });

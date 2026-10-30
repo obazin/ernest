@@ -32,6 +32,7 @@ describe('normalizeSettings', () => {
             fontSize: 400,
             columnWidth: Number.NaN,
             typewriterAnchor: 95,
+            typewriterGlide: 20,
             typewriter: 'yes',
             vimClipboard: 0,
         });
@@ -39,6 +40,7 @@ describe('normalizeSettings', () => {
         expect(settings.fontSize).toBe(40);
         expect(settings.columnWidth).toBe(defaultSettings.columnWidth);
         expect(settings.typewriterAnchor).toBe(80);
+        expect(settings.typewriterGlide).toBe(50);
         expect(settings.typewriter).toBe(defaultSettings.typewriter);
         expect(settings.vimClipboard).toBe(defaultSettings.vimClipboard);
     });
