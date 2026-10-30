@@ -72,7 +72,8 @@
     --editor-font-size: 18px;
     --editor-line-height: 1.7;
     --editor-column-width: 680px;
-    --editor-vertical-padding: 15vh;
+    --editor-padding-top: 12vh;
+    --editor-padding-bottom: 12vh;
     --editor-dimmed-opacity: 0.3;
 }
 

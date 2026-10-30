@@ -1,34 +1,36 @@
-import { EditorState, StateEffect, StateField, type Extension } from '@codemirror/state';
+import { EditorState, Facet, StateEffect, StateField, type Extension } from '@codemirror/state';
 import { EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { config, easings } from '../config';
 
 /**
- * Typewriter scrolling: the line holding the cursor stays at the vertical
- * centre of the window, and the text moves around it.
+ * Typewriter scrolling: the line holding the cursor stays at a fixed height
+ * of the window, the anchor (40–80 % from the top), and the text moves
+ * around it. Near the start of the document the window never scrolls above
+ * the text, so scrolling only begins once the text reaches the anchor.
  *
  * Two pieces cooperate:
  *
  * - a scroll handler that turns *every* scroll-into-view request into
- *   "centre this line". Requests come from many places (CodeMirror commands,
- *   search, and the Vim engine, which dispatches its own "make it visible"
- *   scroll after each motion), so intercepting the request is the only place
- *   where centring cannot be overridden by whoever scrolls last;
+ *   "hold this line at the anchor". Requests come from many places
+ *   (CodeMirror commands, search, and the Vim engine, which dispatches its
+ *   own "make it visible" scroll after each motion), so intercepting the
+ *   request is the only place where anchoring cannot be overridden by
+ *   whoever scrolls last;
  * - a transaction extender that requests a scroll whenever the cursor moves
  *   or the text changes, for the cases that would not scroll at all (a mouse
  *   click on a visible line).
  *
- * The content carries half a window of padding above and below (see
- * `--editor-vertical-padding`) so the first and last lines can reach centre.
+ * The content carries enough padding below (see `--editor-padding-bottom`)
+ * for the last line to reach the anchor.
  *
  * Navigation (a click, arrow keys, paragraph jumps, search) glides to the new
  * line; typing and resizing jump, so the line being written never lags.
  */
-const centreEveryScroll = EditorView.scrollHandler.of((view, range) => {
-    const bounds = view.scrollDOM.getBoundingClientRect();
-    const target =
-        view.scrollDOM.scrollTop +
-        visualLineCentre(view, range.head) -
-        (bounds.top + bounds.height / 2);
+const anchorEveryScroll = EditorView.scrollHandler.of((view, range) => {
+    const target = Math.max(
+        0,
+        view.scrollDOM.scrollTop + visualLineCentre(view, range.head) - anchorY(view),
+    );
     if (
         view.state.field(scrollStyle, false) === 'animated' &&
         glideDuration > 0 &&
@@ -44,7 +46,7 @@ const centreEveryScroll = EditorView.scrollHandler.of((view, range) => {
 
 type ScrollStyle = 'instant' | 'animated';
 
-/** Forces the next centring to jump, for scrolls the cursor did not cause. */
+/** Forces the next anchoring to jump, for scrolls the cursor did not cause. */
 const instantScroll = StateEffect.define<null>();
 
 /**
@@ -62,9 +64,20 @@ const scrollStyle = StateField.define<ScrollStyle>({
     },
 });
 
-/** Whether typewriter scrolling is on, i.e. the view centres the cursor itself. */
+/** Whether typewriter scrolling is on, i.e. the view anchors the cursor itself. */
 export function hasTypewriterScrolling(state: EditorState): boolean {
     return state.field(scrollStyle, false) !== undefined;
+}
+
+/** The anchor as a fraction of the window height from the top. */
+const anchor = Facet.define<number, number>({
+    combine: (values) => values[0] ?? 0.5,
+});
+
+/** Screen y of the anchor. */
+function anchorY(view: EditorView): number {
+    const bounds = view.scrollDOM.getBoundingClientRect();
+    return bounds.top + bounds.height * view.state.facet(anchor);
 }
 
 const glideDuration = config.typewriter.glide.durationMs;
@@ -116,12 +129,13 @@ function stopGlide(view: EditorView) {
  */
 function settle(view: EditorView, position: number) {
     view.requestMeasure({
-        read: (view) => {
-            const bounds = view.scrollDOM.getBoundingClientRect();
-            return visualLineCentre(view, position) - (bounds.top + bounds.height / 2);
-        },
-        write: (offset, view) => {
-            if (Math.abs(offset) >= 1) view.scrollDOM.scrollTop += offset;
+        read: (view) =>
+            Math.max(
+                0,
+                view.scrollDOM.scrollTop + visualLineCentre(view, position) - anchorY(view),
+            ),
+        write: (target, view) => {
+            if (Math.abs(target - view.scrollDOM.scrollTop) >= 1) view.scrollDOM.scrollTop = target;
         },
     });
 }
@@ -162,8 +176,8 @@ const scrollOnCursorMove = EditorState.transactionExtender.of((transaction) => {
     return { effects: EditorView.scrollIntoView(transaction.newSelection.main.head) };
 });
 
-/** Re-centres after the window is resized or the font changes. */
-const centreOnGeometryChange = ViewPlugin.fromClass(
+/** Re-anchors after the window is resized or the font changes. */
+const anchorOnGeometryChange = ViewPlugin.fromClass(
     class {
         private pending = false;
 
@@ -182,6 +196,13 @@ const centreOnGeometryChange = ViewPlugin.fromClass(
     },
 );
 
-export function typewriterScrolling(): Extension {
-    return [scrollStyle, centreEveryScroll, scrollOnCursorMove, centreOnGeometryChange];
+/** Typewriter scrolling around an anchor `anchorPercent` % from the top of the window. */
+export function typewriterScrolling(anchorPercent: number): Extension {
+    return [
+        anchor.of(anchorPercent / 100),
+        scrollStyle,
+        anchorEveryScroll,
+        scrollOnCursorMove,
+        anchorOnGeometryChange,
+    ];
 }

@@ -42,17 +42,17 @@ Every component is styled with the semantic tokens of `src/app.css` (CLAUDE.md r
 
 ### Design system
 
-| Component        | Tier     | Props                                                               | Composed of    |
-| ---------------- | -------- | ------------------------------------------------------------------- | -------------- |
-| `ColorDot`       | Atom     | `color` (a colour shown as data)                                    |                |
-| `KeyCapButton`   | Atom     | `key` (shown as a key cap), `label` (for assistive tech), `onclick` |                |
-| `SectionHeading` | Atom     | `children`                                                          |                |
-| `TextArea`       | Atom     | bindable `value`, any `<textarea>` attribute, `class`               |                |
-| `TextInput`      | Atom     | bindable `value`, any `<input>` attribute, `class`                  |                |
-| `ToggleChip`     | Atom     | `pressed`, `locked`, `title`, `onclick`, `children`                 |                |
-| `CheckboxField`  | Molecule | `label`, `hint`, bindable `checked`                                 |                |
-| `SliderField`    | Molecule | `label`, `minimum`, `maximum`, `step`, bindable `value`, `format`   |                |
-| `SidePanel`      | Organism | `title`, `onclose`, `children`                                      | `KeyCapButton` |
+| Component        | Tier     | Props                                                                         | Composed of    |
+| ---------------- | -------- | ----------------------------------------------------------------------------- | -------------- |
+| `ColorDot`       | Atom     | `color` (a colour shown as data)                                              |                |
+| `KeyCapButton`   | Atom     | `key` (shown as a key cap), `label` (for assistive tech), `onclick`           |                |
+| `SectionHeading` | Atom     | `children`                                                                    |                |
+| `TextArea`       | Atom     | bindable `value`, any `<textarea>` attribute, `class`                         |                |
+| `TextInput`      | Atom     | bindable `value`, any `<input>` attribute, `class`                            |                |
+| `ToggleChip`     | Atom     | `pressed`, `locked`, `title`, `onclick`, `children`                           |                |
+| `CheckboxField`  | Molecule | `label`, `hint`, bindable `checked`                                           |                |
+| `SliderField`    | Molecule | `label`, `minimum`, `maximum`, `step`, bindable `value`, `format`, `disabled` |                |
+| `SidePanel`      | Organism | `title`, `onclose`, `children`                                                | `KeyCapButton` |
 
 `TextInput` and `TextArea` take text in the writer's own font (`font-editor`), for values that are typed as they would be in the editor: key sequences, Vim mappings. `SidePanel` is a modal dialog sliding in from the right edge: it takes focus when it opens and closes on Escape, on its `esc` key cap or on a click outside.
 

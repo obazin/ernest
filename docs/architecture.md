@@ -7,7 +7,7 @@ Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process ow
 │ App.svelte        document lifecycle, shortcuts, settings│
 │  ├─ WritingEditor  CodeMirror view + compartments        │
 │  │   ├─ vim()            @replit/codemirror-vim          │
-│  │   ├─ typewriter       centred scrolling               │
+│  │   ├─ typewriter       anchored scrolling              │
 │  │   ├─ markdown()       highlighting                    │
 │  │   ├─ livePreview      hides markup off the cursor line│
 │  │   ├─ spelling         underlines unknown words        │
@@ -70,16 +70,16 @@ Markup is revealed per line, for every line a selection range touches, rather th
 
 ### Typewriter scrolling
 
-`src/lib/editor/typewriter.ts` keeps the cursor line at the vertical centre. Scroll requests come from many sources: CodeMirror commands, search, and the Vim engine, which dispatches its own "make it visible" scroll after each motion. Adding a centred scroll effect to transactions is therefore not enough, because whichever request comes last wins.
+`src/lib/editor/typewriter.ts` keeps the cursor line at the anchor, a height of the window set in the settings (40–80 % from the top, held in a facet). Scroll requests come from many sources: CodeMirror commands, search, and the Vim engine, which dispatches its own "make it visible" scroll after each motion. Adding an anchored scroll effect to transactions is therefore not enough, because whichever request comes last wins.
 
-Instead, an `EditorView.scrollHandler` intercepts every scroll-into-view request and replaces it with "centre this line". Two companions cover the cases that would not request a scroll at all:
+Instead, an `EditorView.scrollHandler` intercepts every scroll-into-view request and replaces it with "hold this line at the anchor". The target scroll position never goes below zero, so near the start of the document the text stays where it is until it reaches the anchor. Two companions cover the cases that would not request a scroll at all:
 
 - a transaction extender that adds a scroll request whenever the selection moves or the text changes (a click on an already visible line);
-- a view plugin that re-centres after geometry changes (window resize, font change).
+- a view plugin that re-anchors after geometry changes (window resize, font change).
 
 Scroll handlers run while the view is in its update phase, where `coordsAtPos` and the other measuring APIs throw. The handler therefore measures the cursor's visual (wrapped) line through `view.domAtPos` and a DOM `Range`, falling back to the height map (`lineBlockAt` plus `documentTop`) for positions outside the rendered viewport, such as after `G`.
 
-The content has `calc(50vh - 1em)` of padding above and below so the first and last lines can reach the centre.
+The content has the window height below the anchor as bottom padding (`--editor-padding-bottom`, set by `App.svelte`) so the last line can reach the anchor; the top padding stays the ordinary margin.
 
 ### Spell checking
 

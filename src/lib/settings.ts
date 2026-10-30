@@ -10,6 +10,11 @@ export interface Settings {
     columnWidth: number;
     vim: boolean;
     typewriter: boolean;
+    /**
+     * Height of the window, in percent from the top, where typewriter
+     * scrolling holds the cursor line once the text reaches it.
+     */
+    typewriterAnchor: number;
     focusMode: boolean;
     spellcheck: boolean;
     /** A word is spelled correctly when any of these knows it; never empty. */
@@ -49,6 +54,7 @@ export const defaultSettings: Settings = {
     columnWidth: 680,
     vim: true,
     typewriter: true,
+    typewriterAnchor: 50,
     focusMode: false,
     spellcheck: true,
     spellingLanguages: ['en-US'],
@@ -63,6 +69,7 @@ export const limits = {
     fontSize: { minimum: 10, maximum: 40, step: 1 },
     lineHeight: { minimum: 1, maximum: 2.5, step: 0.05 },
     columnWidth: { minimum: 360, maximum: 1400, step: 20 },
+    typewriterAnchor: { minimum: 40, maximum: 80, step: 1 },
 } as const;
 
 /**
@@ -112,6 +119,7 @@ export function normalizeSettings(
         columnWidth: number('columnWidth'),
         vim: boolean('vim'),
         typewriter: boolean('typewriter'),
+        typewriterAnchor: number('typewriterAnchor'),
         focusMode: boolean('focusMode'),
         spellcheck: boolean('spellcheck'),
         spellingLanguages: normalizeSpellingLanguages(

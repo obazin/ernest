@@ -5,7 +5,7 @@
 Ernest opens straight into a single column of text on an empty page. There are no toolbars, sidebars or menus to dismiss.
 
 - **Fixed-width column.** The text column keeps the same width in pixels whatever the window size (680 px by default), so line length stays comfortable to read. Change it under Settings → Column width.
-- **Typewriter scrolling.** The line you are writing stays at the vertical centre of the window, and the text moves around it. This holds when typing, when moving with Vim motions, after jumps such as `G` or a search, and after resizing the window. Toggle it with Mod+Shift+T.
+- **Typewriter scrolling.** The line you are writing stays at a fixed height of the window, the anchor, and the text moves around it. The anchor sits between 40 % and 80 % of the window height from the top (50 %, the centre, by default); change it under Settings → Writing → Anchor, just below the toggle (greyed out while typewriter scrolling is off). Scrolling only begins once the text reaches the anchor: in a new document the first lines fill the page from the top as usual. This holds when typing, when moving with Vim motions, after jumps such as `G` or a search, and after resizing the window. Toggle it with Mod+Shift+T.
 - **Focus mode.** Dims every paragraph except the one holding the cursor. Toggle it with Mod+Shift+D.
 - **Live preview.** In Markdown documents, the syntax (`#`, `**`, `_`, backticks, `[…](…)`, `>`) is hidden and only its effect shows: a heading reads as a heading, a link as its text. The markup reappears on the line holding the cursor (every line of a selection), so you edit the raw text and see the result as soon as you move away. Bullets show as `•`, task boxes as `☐`/`☑`, horizontal rules as a line, and quotes keep a bar in the margin. Fenced code blocks and images are left as written. When the window loses focus, every line is shown rendered. Toggle it with Mod+Shift+P.
 - **Status line.** Shows the file name, a dot when there are unsaved changes, the Vim mode and the word count. It fades out as soon as you type and comes back when you pause or move the mouse. Messages such as `"notes.md" written` also appear there.
@@ -157,6 +157,7 @@ Open with Mod+,. Changes apply immediately and are saved automatically.
 | Leave insert mode with      | none              | two or three keys, Vim mode only                            |
 | Vim mappings                | none              | vimrc-style lines, Vim mode only                            |
 | Typewriter scrolling        | on                |                                                             |
+| Anchor                      | 50 %              | 40–80 % of the window height, typewriter scrolling only     |
 | Focus mode                  | off               |                                                             |
 | Live preview                | on                | Markdown documents only                                     |
 | Spell checking              | on                | plus words you add                                          |

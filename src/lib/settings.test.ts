@@ -31,12 +31,14 @@ describe('normalizeSettings', () => {
             theme: 'no-such-theme',
             fontSize: 400,
             columnWidth: Number.NaN,
+            typewriterAnchor: 95,
             typewriter: 'yes',
             vimClipboard: 0,
         });
         expect(settings.theme).toBe(defaultSettings.theme);
         expect(settings.fontSize).toBe(40);
         expect(settings.columnWidth).toBe(defaultSettings.columnWidth);
+        expect(settings.typewriterAnchor).toBe(80);
         expect(settings.typewriter).toBe(defaultSettings.typewriter);
         expect(settings.vimClipboard).toBe(defaultSettings.vimClipboard);
     });

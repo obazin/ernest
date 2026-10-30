@@ -37,7 +37,11 @@
             label: 'Share clipboard with system',
             hint: 'Vim yanks and pastes use the system clipboard',
         },
-        { key: 'typewriter', label: 'Typewriter scrolling', hint: 'Keep the current line centred' },
+        {
+            key: 'typewriter',
+            label: 'Typewriter scrolling',
+            hint: 'Keep the current line at a fixed height',
+        },
         { key: 'focusMode', label: 'Focus mode', hint: 'Dim every paragraph but this one' },
         {
             key: 'livePreview',
@@ -53,7 +57,7 @@
     ];
 
     const sliders: {
-        key: keyof typeof limits;
+        key: 'fontSize' | 'lineHeight' | 'columnWidth';
         label: string;
         format: (value: number) => string;
     }[] = [
@@ -109,6 +113,19 @@
                 hint={toggle.hint}
                 bind:checked={settings[toggle.key]}
             />
+            {#if toggle.key === 'typewriter'}
+                <div class="pl-6">
+                    <SliderField
+                        label="Anchor"
+                        disabled={!settings.typewriter}
+                        minimum={limits.typewriterAnchor.minimum}
+                        maximum={limits.typewriterAnchor.maximum}
+                        step={limits.typewriterAnchor.step}
+                        format={(value) => `${value}%`}
+                        bind:value={settings.typewriterAnchor}
+                    />
+                </div>
+            {/if}
             {#if toggle.key === 'spellcheck' && settings.spellcheck}
                 <div class="pb-1.5 pl-6">
                     <SpellingLanguagePicker bind:value={settings.spellingLanguages} />

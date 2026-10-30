@@ -70,11 +70,11 @@
         root.setProperty('--editor-font-size', `${settings.fontSize}px`);
         root.setProperty('--editor-line-height', String(settings.lineHeight));
         root.setProperty('--editor-column-width', `${settings.columnWidth}px`);
-        // Typewriter mode needs half a window above and below the text so the
-        // first and last lines can sit at the vertical centre.
+        // Typewriter mode needs the window height below the anchor under the
+        // text, so the last line can reach the anchor.
         root.setProperty(
-            '--editor-vertical-padding',
-            settings.typewriter ? 'calc(50vh - 1em)' : '12vh',
+            '--editor-padding-bottom',
+            settings.typewriter ? `calc(${100 - settings.typewriterAnchor}vh - 1em)` : '12vh',
         );
     });
 
@@ -82,6 +82,7 @@
         editor?.configure({
             vim: settings.vim,
             typewriter: settings.typewriter,
+            typewriterAnchor: settings.typewriterAnchor,
             focusMode: settings.focusMode,
             spellcheck: settings.spellcheck,
             // Spread, so the effect also tracks the array's elements.
@@ -305,6 +306,7 @@
                 {
                     vim: settings.vim,
                     typewriter: settings.typewriter,
+                    typewriterAnchor: settings.typewriterAnchor,
                     focusMode: settings.focusMode,
                     spellcheck: settings.spellcheck,
                     spellingLanguages: [...settings.spellingLanguages],

@@ -33,7 +33,7 @@ const chrome = EditorView.theme({
         flex: 'none',
         width: 'min(var(--editor-column-width), 100%)',
         marginInline: 'auto',
-        padding: 'var(--editor-vertical-padding) 0',
+        padding: 'var(--editor-padding-top) 0 var(--editor-padding-bottom)',
         caretColor: 'var(--color-cursor)',
     },
     '.cm-line': { padding: '0' },

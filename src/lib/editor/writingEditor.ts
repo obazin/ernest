@@ -25,6 +25,8 @@ export type DocumentKind = 'markdown' | 'plain-text';
 export interface EditorOptions {
     vim: boolean;
     typewriter: boolean;
+    /** Where typewriter scrolling holds the cursor line, in percent of the window height. */
+    typewriterAnchor: number;
     focusMode: boolean;
     spellcheck: boolean;
     spellingLanguages: readonly SpellingLanguage[];
@@ -94,10 +96,11 @@ export class WritingEditor {
         if (previous.vim !== options.vim) {
             effects.push(this.vimMode.reconfigure(this.vimExtensions()));
         }
-        if (previous.typewriter !== options.typewriter) {
-            effects.push(
-                this.typewriter.reconfigure(options.typewriter ? typewriterScrolling() : []),
-            );
+        if (
+            previous.typewriter !== options.typewriter ||
+            previous.typewriterAnchor !== options.typewriterAnchor
+        ) {
+            effects.push(this.typewriter.reconfigure(this.typewriterExtension()));
         }
         if (previous.livePreview !== options.livePreview) {
             effects.push(this.language.reconfigure(this.languageExtension()));
@@ -144,7 +147,7 @@ export class WritingEditor {
                 search({ top: false }),
                 keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
                 this.language.of(this.languageExtension()),
-                this.typewriter.of(this.options.typewriter ? typewriterScrolling() : []),
+                this.typewriter.of(this.typewriterExtension()),
                 this.attributes.of(this.attributeExtensions()),
                 this.spelling.of(this.options.spellcheck ? spellChecking() : []),
                 editorTheme(),
@@ -169,6 +172,10 @@ export class WritingEditor {
             codeFolding({ placeholderText: '…' }),
             this.options.livePreview ? livePreview() : [],
         ];
+    }
+
+    private typewriterExtension(): Extension {
+        return this.options.typewriter ? typewriterScrolling(this.options.typewriterAnchor) : [];
     }
 
     private attributeExtensions(): Extension {
