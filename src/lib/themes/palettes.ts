@@ -373,28 +373,28 @@ export const palettes: Palette[] = [
     },
     {
         // Neutral greys only, for long sessions: the page stops short of white
-        // and the darkest ink short of black, so body text sits near 7.5:1
+        // and the darkest ink short of black, so body text sits near 6.5:1
         // rather than 21:1. Without hue, Markdown roles differ by lightness:
         // headings and bold are the darkest ink, quotes and code the lightest.
         identifier: 'monochrome-light',
         name: 'Monochrome Light',
         appearance: 'light',
         colors: {
-            background: '#e4e4e4',
-            surface: '#dadada',
-            border: '#c9c9c9',
-            foreground: '#454545',
-            muted: '#7c7c7c',
+            background: '#bababa',
+            surface: '#b0b0b0',
+            border: '#9f9f9f',
+            foreground: '#333333',
+            muted: '#606060',
             accent: '#5a5a5a',
-            cursor: '#3c3c3c',
-            selection: '#c6c6c6',
-            heading: '#363636',
+            cursor: '#2c2c2c',
+            selection: '#9c9c9c',
+            heading: '#242424',
             emphasis: '#555555',
-            strong: '#3a3a3a',
+            strong: '#282828',
             link: '#606060',
             code: '#666666',
             quote: '#6c6c6c',
-            highlight: '#a0a0a0',
+            highlight: '#8a8a8a',
         },
     },
 ];
