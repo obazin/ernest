@@ -14,6 +14,7 @@ The backend does only what the webview cannot: touch arbitrary files, enumerate 
 | Builder, plugins, managed state, `generate_handler!`, quit interception           | `lib.rs`       |
 | Which paths the webview may read and write (grants, text extensions)              | `access.rs`    |
 | Reading and writing documents, the file dialogs, the launch argument              | `documents.rs` |
+| Running slow synchronous work off the async workers (`on_blocking_pool`)          | `blocking.rs`  |
 | File-system primitives shared by several modules (`write_atomically`, `absolute`) | `files.rs`     |
 | System font families                                                              | `fonts.rs`     |
 | OS locale preferences                                                             | `locale.rs`    |
@@ -27,6 +28,7 @@ The backend does only what the webview cannot: touch arbitrary files, enumerate 
 - **A command lives in the module of its concern**, not the module of its first caller. `system_languages` feeds the settings defaults but is an OS query, so it lives in `locale.rs`.
 - **`settings.rs` stays schema-free.** It never names a setting; the schema, defaults and validation are in `src/lib/settings.ts`.
 - **Every document path from the webview passes `DocumentAccess::check`.** A new command that reads or writes a path the webview supplies checks it first; a path the writer picks in a backend dialog is granted. File dialogs run in the backend, never through the webview's dialog plugin.
+- **Slow work goes through `on_blocking_pool`.** A command body that does file I/O, parses data, queries the OS or waits on a native dialog runs inside `blocking::on_blocking_pool`, never directly in the `async fn`. Use `app.state::<T>()` inside the closure, since `State<'_, T>` cannot move into it.
 - **`lib.rs` only assembles.** No command bodies or business logic there; it registers commands and state, and handles run events.
 - **New module, new header.** Start every module with a `//!` line saying what it owns, and list it in the module diagram in `docs/architecture.md` and the layout in `docs/development.md`.
 - Moving a command between modules changes `generate_handler!`, so run the `rust-ipc-reviewer` agent afterwards (CLAUDE.md rule 4). The command name `invoke` sees is the function name, so `backend.ts` does not change.

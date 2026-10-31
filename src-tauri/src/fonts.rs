@@ -1,17 +1,24 @@
 use std::collections::BTreeSet;
 
+use crate::blocking::on_blocking_pool;
+
 /// Family names of every font installed on the system, sorted and unique.
 ///
 /// The webview resolves CSS `font-family` against the same system fonts, so
 /// any name returned here can be used directly in the editor's stylesheet.
 /// Enumeration parses every font file's name table, which takes a noticeable
-/// moment on machines with many fonts, hence an async command (run off the
-/// main thread) that the frontend calls lazily.
+/// moment on machines with many fonts, hence the blocking pool and a
+/// frontend that asks lazily. A failure answers with no fonts, leaving the
+/// default stack.
 #[tauri::command]
 pub async fn list_system_fonts() -> Vec<String> {
-    let mut database = fontdb::Database::new();
-    database.load_system_fonts();
-    family_names(&database)
+    on_blocking_pool(|| {
+        let mut database = fontdb::Database::new();
+        database.load_system_fonts();
+        family_names(&database)
+    })
+    .await
+    .unwrap_or_default()
 }
 
 fn family_names(database: &fontdb::Database) -> Vec<String> {

@@ -20,6 +20,7 @@ Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process ow
 ┌──────────────────────── Rust ───────────────────────────┐
 │ access.rs     which paths the webview may touch          │
 │ documents.rs  read / write / dialogs / launch argument   │
+│ blocking.rs   slow work on the blocking thread pool      │
 │ files.rs      atomic write, shared by every module       │
 │ fonts.rs      system font families (fontdb)              │
 │ locale.rs     the system's preferred languages           │
@@ -41,7 +42,7 @@ The split follows one rule: the backend does what a webview cannot do safely or 
 | `write_document(path, text)`                                     | `documents.rs` | Atomic write; returns the absolute path written.                                                                                                                                                                                                                |
 | `initial_document_path()`                                        | `documents.rs` | The first non-flag command-line argument, made absolute and granted.                                                                                                                                                                                            |
 | `choose_document_to_open()` / `choose_document_to_save(current)` | `documents.rs` | The native open and save dialogs; the chosen path is granted.                                                                                                                                                                                                   |
-| `list_system_fonts()`                                            | `fonts.rs`     | Sorted, unique family names; async because parsing every font file takes a moment.                                                                                                                                                                              |
+| `list_system_fonts()`                                            | `fonts.rs`     | Sorted, unique family names; parsing every font file takes a moment.                                                                                                                                                                                            |
 | `load_settings()` / `save_settings(settings)`                    | `settings.rs`  | Opaque JSON in the app config directory.                                                                                                                                                                                                                        |
 | `system_languages()`                                             | `locale.rs`    | The system's preferred languages as BCP 47 tags (`sys-locale`); the first one with a dictionary becomes the spelling language when none is stored. WKWebView's `navigator.languages` reports the app's localisation instead, so the webview cannot answer this. |
 | `check_words(words, languages)`                                  | `spelling.rs`  | Whether each word is spelled correctly in at least one of the languages.                                                                                                                                                                                        |
@@ -49,6 +50,8 @@ The split follows one rule: the backend does what a webview cannot do safely or 
 | `add_to_dictionary(word)`                                        | `spelling.rs`  | Adds a word to the personal word list.                                                                                                                                                                                                                          |
 
 Errors are a single `thiserror` enum serialised as its display string: the frontend only ever shows them, it never branches on them.
+
+Every command that touches the disk, parses fonts, queries the OS or waits on a native dialog runs that work through `on_blocking_pool` (`blocking.rs`), Tauri's blocking thread pool. The async runtime has only a few workers, so slow work run on them directly would delay every other command; a panic in the pool comes back as an error instead of a reply that never arrives.
 
 ### Document access
 

@@ -24,6 +24,8 @@ pub enum Error {
     ConfigurationDirectory(#[from] tauri::Error),
     #[error("dictionary: {0}")]
     Dictionary(String),
+    #[error("background task failed: {0}")]
+    Interrupted(String),
 }
 
 impl Error {

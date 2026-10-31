@@ -8,6 +8,7 @@ use spellbook::Dictionary;
 use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
 
+use crate::blocking::on_blocking_pool;
 use crate::error::{Error, Result};
 use crate::files::write_atomically;
 
@@ -217,7 +218,7 @@ async fn with_speller<T: Send + 'static>(
     app: AppHandle,
     action: impl FnOnce(&mut Speller) -> Result<T> + Send + 'static,
 ) -> Result<T> {
-    tauri::async_runtime::spawn_blocking(move || {
+    on_blocking_pool(move || {
         let state = app.state::<SpellingState>();
         let mut slot = state
             .0
@@ -233,8 +234,7 @@ async fn with_speller<T: Send + 'static>(
         }
         action(slot.as_mut().expect("loaded above"))
     })
-    .await
-    .map_err(|error| Error::Dictionary(error.to_string()))?
+    .await?
 }
 
 /// Whether each word is spelled correctly in one of `languages`, in order.
