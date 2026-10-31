@@ -56,7 +56,7 @@ Errors are a single `thiserror` enum serialised as its display string: the front
 
 ### Atomic writes
 
-Everything the backend persists (documents, settings, the personal dictionary) goes through `write_atomically` in `files.rs`. It resolves symlinks first (so the link survives), writes to a hidden sibling `.<name>.ernest-<pid>`, calls `sync_all`, copies the original permissions, then renames over the target. Rename within one directory is atomic on every supported file system, so a crash or full disk mid-save leaves the previous version intact. The temporary file is removed if any step fails.
+Everything the backend persists (documents, settings, the personal dictionary) goes through `write_atomically` in `files.rs`. It resolves symlinks first (so the link survives), writes to a hidden sibling `.<name>.ernest-<pid>-<count>` created exclusively (a fresh name per write, never an existing file or a planted symlink, so concurrent saves of one file cannot share it), calls `sync_all`, copies the original permissions, then renames over the target. Rename within one directory is atomic on every supported file system, so a crash or full disk mid-save leaves the previous version intact. The temporary file is removed if any step fails.
 
 ### Settings ownership
 
