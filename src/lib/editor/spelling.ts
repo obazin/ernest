@@ -9,7 +9,7 @@ import {
 } from '@codemirror/view';
 import type { Tree } from '@lezer/common';
 import { backend } from '../backend';
-import { defaultSettings, type SpellingLanguage } from '../settings';
+import { fallbackSpellingLanguages, type SpellingLanguage } from '../spellingLanguages';
 
 /**
  * Spell checking against the dictionaries the backend bundles (Hunspell, one
@@ -93,7 +93,7 @@ export function wordsIn(text: string, offset: number, skipped: [number, number][
 }
 
 /** The languages words are checked in, shared by every editor. */
-let languages: readonly SpellingLanguage[] = defaultSettings.spellingLanguages;
+let languages: readonly SpellingLanguage[] = fallbackSpellingLanguages;
 /** Answers per word for `languages`, shared by every editor. */
 const known = new Map<string, boolean>();
 /** Words ignored for the session (Vim's `zG`). */
@@ -273,8 +273,9 @@ export function findMisspelling(
     return ordered[(first + count - 1) % ordered.length];
 }
 
-/** Records a word added to the personal dictionary. */
-export function markKnown(word: string) {
+/** Adds a word to the personal dictionary, then counts it as correct. */
+export async function addToDictionary(word: string): Promise<void> {
+    await backend.addToDictionary(word);
     known.set(word, true);
 }
 

@@ -8,8 +8,8 @@ use spellbook::Dictionary;
 use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
 
-use crate::documents::write_atomically;
 use crate::error::{Error, Result};
+use crate::files::write_atomically;
 
 /// A language Ernest can spell. Its code names the Hunspell files in
 /// `dictionaries/` (`fr.aff`, `fr.dic`, with `fr.LICENSE.txt`), which ship

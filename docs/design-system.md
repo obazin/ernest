@@ -27,7 +27,7 @@ src/lib/
 src/App.svelte              the page
 ```
 
-Dependencies point one way: `design-system/` imports nothing outside itself; `features/<name>/` imports the design system and Ernest's modules (`settings.ts`, `themes/`, `backend.ts`) but not another feature; `App.svelte` composes features. A component belongs in `design-system/` only if it would make sense in another app (a key-cap button, a slider field); anything that knows about palettes, fonts, spelling languages or Vim belongs to a feature.
+Dependencies point one way: `design-system/` imports nothing outside itself; `features/<name>/` imports the design system and Ernest's modules (`settings.ts`, `appearance.ts`, `spellingLanguages.ts`, `themes/`, `backend.ts`) but not another feature; `App.svelte` composes features. A component belongs in `design-system/` only if it would make sense in another app (a key-cap button, a slider field); anything that knows about palettes, fonts, spelling languages or Vim belongs to a feature.
 
 Every component is styled with the semantic tokens of `src/app.css` (CLAUDE.md rule 11), so tiers say nothing about colour: a primitive follows the active palette like everything else.
 

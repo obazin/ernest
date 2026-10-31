@@ -1,10 +1,17 @@
+import { isEscapeSequence } from './editor/vim/escapeSequence';
+import {
+    fallbackSpellingLanguages,
+    spellingLanguages,
+    systemSpellingLanguages,
+    type SpellingLanguage,
+} from './spellingLanguages';
 import { defaultPaletteIdentifier, palettes } from './themes/palettes';
 
 export interface Settings {
     theme: string;
     /**
      * Strength of the anti-glare overlay over the whole window, in percent;
-     * 0 is off. See `antiGlareOpacity` for how it maps to the overlay.
+     * 0 is off. See `antiGlareOpacity` in `appearance.ts` for how it maps to the overlay.
      * Focus mode replaces it while on.
      */
     antiGlare: number;
@@ -39,16 +46,6 @@ export interface Settings {
     vimMappings: string;
 }
 
-/** The languages the spell checker has a dictionary for, by the code the backend expects. */
-export const spellingLanguages = [
-    { code: 'en-US', name: 'English (US)' },
-    { code: 'fr', name: 'Français' },
-    { code: 'it', name: 'Italiano' },
-    { code: 'es', name: 'Español' },
-] as const;
-
-export type SpellingLanguage = (typeof spellingLanguages)[number]['code'];
-
 /** The settings that are on/off toggles. */
 export type BooleanSetting = {
     [Key in keyof Settings]: Settings[Key] extends boolean ? Key : never;
@@ -67,7 +64,7 @@ export const defaultSettings: Settings = {
     typewriterGlide: 120,
     focusMode: false,
     spellcheck: true,
-    spellingLanguages: ['en-US'],
+    spellingLanguages: [...fallbackSpellingLanguages],
     livePreview: true,
     autosave: false,
     vimClipboard: true,
@@ -83,17 +80,6 @@ export const limits = {
     typewriterAnchor: { minimum: 40, maximum: 80, step: 1 },
     typewriterGlide: { minimum: 50, maximum: 500, step: 10 },
 } as const;
-
-/**
- * Overlay opacity for an anti-glare strength: the full slider spans 0–0.7,
- * since past that the window flattens to an unreadable grey.
- */
-export function antiGlareOpacity(strength: number): number {
-    return (strength / 100) * 0.7;
-}
-
-/** Opacity of the focus mode fade where it is thickest. */
-export const focusOverlayOpacity = 0.4;
 
 /**
  * Builds valid settings from whatever was stored: unknown keys are dropped,
@@ -178,37 +164,6 @@ export function normalizeSpellingLanguages(
     return chosen.length > 0 ? chosen : [...fallback];
 }
 
-/**
- * The spelling language for the first system language Ernest has a
- * dictionary for, matched on the language alone (`fr-CA` → `fr`, `en-GB` →
- * `en-US`), or English (US) when there is none.
- */
-export function systemSpellingLanguages(systemLanguages: readonly string[]): SpellingLanguage[] {
-    for (const tag of systemLanguages) {
-        const primary = tag.split(/[-_]/)[0].toLowerCase();
-        const match = spellingLanguages.find((language) => language.code.split('-')[0] === primary);
-        if (match) return [match.code];
-    }
-    return [...defaultSettings.spellingLanguages];
-}
-
-/**
- * An insert-mode escape sequence is two or three keys, none of them a space
- * or `<` (which would start a key name such as `<CR>`).
- */
-export function isEscapeSequence(keys: string): boolean {
-    return /^[^\s<]{2,3}$/u.test(keys);
-}
-
 export function clamp(value: number, minimum: number, maximum: number): number {
     return Math.min(maximum, Math.max(minimum, value));
-}
-
-const fallbackFontStack = 'ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace';
-
-/** The CSS `font-family` value for a chosen family, with a fallback stack behind it. */
-export function fontFamilyStack(family: string): string {
-    if (family.trim() === '') return fallbackFontStack;
-    const quoted = `"${family.replace(/["\\]/g, '\\$&')}"`;
-    return `${quoted}, ${fallbackFontStack}`;
 }

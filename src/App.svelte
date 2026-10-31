@@ -1,9 +1,9 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { listen } from '@tauri-apps/api/event';
-    import { homeDir, isAbsolute, join, dirname } from '@tauri-apps/api/path';
     import { getCurrentWindow } from '@tauri-apps/api/window';
     import { ask, open, save } from '@tauri-apps/plugin-dialog';
+    import { antiGlareOpacity, applyTypography, focusOverlayOpacity } from './lib/appearance';
     import { backend } from './lib/backend';
     import DarkenOverlay from './lib/design-system/atoms/DarkenOverlay.svelte';
     import SpotlightOverlay from './lib/design-system/atoms/SpotlightOverlay.svelte';
@@ -14,13 +14,11 @@
     import { applyEscapeSequence } from './lib/editor/vim/escapeSequence';
     import { applyMappings } from './lib/editor/vim/mappings';
     import { installVimCommands } from './lib/editor/vimCommands';
-    import { documentKindForPath, WritingEditor } from './lib/editor/writingEditor';
+    import { WritingEditor, type EditorOptions } from './lib/editor/writingEditor';
+    import { baseName, documentKindForPath, resolvePath, textFileFilters } from './lib/documents';
     import {
-        antiGlareOpacity,
         clamp,
         defaultSettings,
-        focusOverlayOpacity,
-        fontFamilyStack,
         limits,
         normalizeSettings,
         type Settings,
@@ -39,10 +37,6 @@
     const isMac = navigator.userAgent.includes('Mac');
     /** Control-key chords Vim already means something by, left to Vim off macOS. */
     const vimControlKeys = new Set(['o', 'n']);
-    const textFileFilters = [
-        { name: 'Text', extensions: ['md', 'markdown', 'txt', 'text'] },
-        { name: 'All files', extensions: ['*'] },
-    ];
 
     let settings = $state<Settings>({ ...defaultSettings });
     let settingsLoaded = false;
@@ -70,32 +64,26 @@
 
     $effect(() => applyPalette(findPalette(settings.theme)));
 
-    $effect(() => {
-        const root = document.documentElement.style;
-        root.setProperty('--font-editor', fontFamilyStack(settings.fontFamily));
-        root.setProperty('--editor-font-size', `${settings.fontSize}px`);
-        root.setProperty('--editor-line-height', String(settings.lineHeight));
-        root.setProperty('--editor-column-width', `${settings.columnWidth}px`);
-        // Typewriter mode needs the window height below the anchor under the
-        // text, so the last line can reach the anchor.
-        root.setProperty(
-            '--editor-padding-bottom',
-            settings.typewriter ? `calc(${100 - settings.typewriterAnchor}vh - 1em)` : '12vh',
-        );
-    });
+    $effect(() => applyTypography(settings));
 
-    $effect(() => {
-        editor?.configure({
+    /** The settings the editor applies itself. */
+    function editorOptions(): EditorOptions {
+        return {
             vim: settings.vim,
             typewriter: settings.typewriter,
             typewriterAnchor: settings.typewriterAnchor,
             typewriterGlide: settings.typewriterGlide,
             focusMode: settings.focusMode,
             spellcheck: settings.spellcheck,
-            // Spread, so the effect also tracks the array's elements.
+            // Spread, so an effect calling this also tracks the array's elements.
             spellingLanguages: [...settings.spellingLanguages],
             livePreview: settings.livePreview,
-        });
+        };
+    }
+
+    $effect(() => {
+        const options = editorOptions();
+        editor?.configure(options);
     });
 
     $effect(() => setClipboardSharing(settings.vimClipboard));
@@ -137,18 +125,6 @@
 
     // ── Documents ───────────────────────────────────────────────────────────
 
-    function baseName(path: string): string {
-        return path.split(/[\\/]/).pop() ?? path;
-    }
-
-    /** Resolves `~/…` and relative paths against the current document's folder, as Vim does. */
-    async function resolvePath(input: string): Promise<string> {
-        if (input === '~' || input.startsWith('~/')) return join(await homeDir(), input.slice(1));
-        if (await isAbsolute(input)) return input;
-        const base = documentPath ? await dirname(documentPath) : await homeDir();
-        return join(base, input);
-    }
-
     async function mayDiscard(policy: DiscardPolicy): Promise<boolean> {
         if (!dirty || policy === 'force') return true;
         if (policy === 'refuse') {
@@ -175,7 +151,7 @@
     async function openDocument(path: string | undefined, policy: DiscardPolicy) {
         if (!(await mayDiscard(policy))) return;
         const target = path
-            ? await resolvePath(path)
+            ? await resolvePath(path, documentPath)
             : await open({ multiple: false, directory: false, filters: textFileFilters });
         if (!target) return;
         const file = await backend.readDocument(target);
@@ -200,7 +176,9 @@
     ): Promise<boolean> {
         if (!editor) return false;
         const writesCopy = path !== undefined && documentPath !== undefined && !saveAs;
-        let target: string | null | undefined = path ? await resolvePath(path) : documentPath;
+        let target: string | null | undefined = path
+            ? await resolvePath(path, documentPath)
+            : documentPath;
         if (!target || (saveAs && !path)) {
             target = await save({
                 defaultPath: documentPath ?? 'Untitled.md',
@@ -308,24 +286,11 @@
             settings = normalizeSettings(stored, systemLanguages);
             settingsLoaded = true;
 
-            editor = new WritingEditor(
-                host,
-                {
-                    vim: settings.vim,
-                    typewriter: settings.typewriter,
-                    typewriterAnchor: settings.typewriterAnchor,
-                    typewriterGlide: settings.typewriterGlide,
-                    focusMode: settings.focusMode,
-                    spellcheck: settings.spellcheck,
-                    spellingLanguages: [...settings.spellingLanguages],
-                    livePreview: settings.livePreview,
-                },
-                {
-                    onChange: handleChange,
-                    onVimModeChange: (mode) => (vimMode = mode),
-                    onFocusPointMove: (y) => (focusPoint = y),
-                },
-            );
+            editor = new WritingEditor(host, editorOptions(), {
+                onChange: handleChange,
+                onVimModeChange: (mode) => (vimMode = mode),
+                onFocusPointMove: (y) => (focusPoint = y),
+            });
             if (settings.vim) vimMode = 'normal';
 
             installVimExtensions();

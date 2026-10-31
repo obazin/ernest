@@ -1,13 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-    antiGlareOpacity,
-    defaultSettings,
-    fontFamilyStack,
-    isEscapeSequence,
-    normalizeSettings,
-    normalizeSpellingLanguages,
-    systemSpellingLanguages,
-} from './settings';
+import { defaultSettings, normalizeSettings, normalizeSpellingLanguages } from './settings';
 
 describe('normalizeSettings', () => {
     it('keeps stored mappings as text and drops anything else', () => {
@@ -49,14 +41,6 @@ describe('normalizeSettings', () => {
     });
 });
 
-describe('antiGlareOpacity', () => {
-    it('maps the full strength range onto opacities 0 to 0.7', () => {
-        expect(antiGlareOpacity(0)).toBe(0);
-        expect(antiGlareOpacity(50)).toBeCloseTo(0.35);
-        expect(antiGlareOpacity(100)).toBeCloseTo(0.7);
-    });
-});
-
 describe('normalizeSpellingLanguages', () => {
     it('keeps known languages in a fixed order, once each', () => {
         expect(normalizeSpellingLanguages(['es', 'fr', 'es'])).toEqual(['fr', 'es']);
@@ -70,24 +54,6 @@ describe('normalizeSpellingLanguages', () => {
     });
 });
 
-describe('systemSpellingLanguages', () => {
-    it('takes the first system language with a dictionary, by language alone', () => {
-        expect(systemSpellingLanguages(['de-DE', 'fr-CA', 'en-US'])).toEqual(['fr']);
-        expect(systemSpellingLanguages(['es-419'])).toEqual(['es']);
-        expect(systemSpellingLanguages(['en-GB'])).toEqual(['en-US']);
-        expect(systemSpellingLanguages(['it_IT'])).toEqual(['it']);
-    });
-
-    it('falls back to English (US)', () => {
-        expect(systemSpellingLanguages([])).toEqual(['en-US']);
-        expect(systemSpellingLanguages(['ja-JP', 'de'])).toEqual(['en-US']);
-    });
-
-    it('skips POSIX locales and empty tags, ignoring case', () => {
-        expect(systemSpellingLanguages(['C', 'POSIX', '', 'fR-Fr'])).toEqual(['fr']);
-    });
-});
-
 describe('spelling languages in normalizeSettings', () => {
     it('takes the system language only when none is stored', () => {
         expect(normalizeSettings({}, ['it-IT']).spellingLanguages).toEqual(['it']);
@@ -97,30 +63,9 @@ describe('spelling languages in normalizeSettings', () => {
     });
 });
 
-describe('isEscapeSequence', () => {
-    it('accepts two or three keys', () => {
-        expect(isEscapeSequence('jk')).toBe(true);
-        expect(isEscapeSequence('jjk')).toBe(true);
-    });
-
-    it('refuses single keys, long sequences, spaces and key names', () => {
-        for (const keys of ['', 'j', 'jklm', 'j k', '<CR>', 'j<']) {
-            expect(isEscapeSequence(keys)).toBe(false);
-        }
-    });
-
+describe('escape sequence in normalizeSettings', () => {
     it('drops an invalid stored sequence', () => {
         expect(normalizeSettings({ vimEscapeSequence: 'j' }).vimEscapeSequence).toBe('');
         expect(normalizeSettings({ vimEscapeSequence: 'jk' }).vimEscapeSequence).toBe('jk');
-    });
-});
-
-describe('fontFamilyStack', () => {
-    it('quotes the family and escapes quotes inside it', () => {
-        expect(fontFamilyStack('iA Writer "Duo"')).toMatch(/^"iA Writer \\"Duo\\"", /);
-    });
-
-    it('uses the fallback stack alone when no family is chosen', () => {
-        expect(fontFamilyStack('')).not.toContain('""');
     });
 });

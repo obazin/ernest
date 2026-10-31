@@ -57,15 +57,18 @@ ernest.config.json               build-time tuning values, validated by src/lib/
 index.html, src/main.ts          entry point
 src/App.svelte                   document lifecycle, shortcuts, settings wiring
 src/app.css                      Tailwind entry: design tokens (@theme), base styles
+src/lib/appearance.ts            typography custom properties, font stacks, overlay strengths
 src/lib/backend.ts               typed wrappers over the Rust commands
+src/lib/documents.ts             document paths: names, resolution, dialog filters, kind
 src/lib/settings.ts              settings schema, defaults, validation
+src/lib/spellingLanguages.ts     the languages with a dictionary
 src/lib/wordCount.ts             word counting
 src/lib/design-system/           generic atoms, molecules and organisms (see design-system.md)
 src/lib/features/                Ernest's interface: settings panel, status line
 src/lib/editor/                  WritingEditor, typewriter, spelling, Vim commands, editor theme
 src/lib/editor/vim/              Vim motions, actions and operators tuned for prose
 src/lib/themes/palettes.ts       theme palettes and applyPalette
-src-tauri/src/                   lib.rs, documents.rs, fonts.rs, settings.rs, spelling.rs, error.rs
+src-tauri/src/                   lib.rs, documents.rs, files.rs, fonts.rs, locale.rs, settings.rs, spelling.rs, error.rs
 src-tauri/dictionaries/          Hunspell dictionaries (en-US, fr, it, es), bundled as resources, with their licences
 src-tauri/tauri.conf.json        app, window, bundle and CSP configuration
 src-tauri/tauri.macos.conf.json  macOS window overrides (overlay title bar)
@@ -88,6 +91,7 @@ See [architecture.md](architecture.md) for how the pieces interact.
 - Markdown is not hard-wrapped: one paragraph per line.
 - Comments explain why, not what.
 - Components are styled with Tailwind utilities built from the tokens in `src/app.css`: semantic colours (`bg-surface`, `text-muted`, `border-border`, `text-accent`), the interface type scale (`text-label`, `text-caption`, `text-body`, `text-title`), `tracking-*`, `rounded-control`/`rounded-card` and Tailwind's 4px spacing grid. No `<style>` blocks, no raw colours, no arbitrary values in brackets (`text-[13px]`): when nothing fits, add a token with a semantic name to `@theme`. There is no `dark:` variant; a theme is a palette applied at runtime. Inline `style:` is for values that are data, such as a theme card previewing its own palette.
+- Separation of concerns follows [`.claude/rules/`](../.claude/rules/): one owner per concern, dependencies pointing down from `App.svelte`, IPC only through `backend.ts`.
 - Components follow Atomic Design: search the catalogue in [design-system.md](design-system.md) before writing markup, and add new components to it in the right tier and layer.
 
 ## Recipes
@@ -103,7 +107,7 @@ Nothing else changes: the settings panel and `:colo` read the array. A new palet
 ### Add a setting
 
 1. Add the field to `Settings`, `defaultSettings` and `normalizeSettings` in `src/lib/settings.ts` (plus `limits` for a number), and a case in `settings.test.ts`.
-2. Apply it in `App.svelte`: a CSS custom property in the typography `$effect` (declared in `src/app.css`), or a new `EditorOptions` field passed to `editor.configure`.
+2. Apply it from `App.svelte`: a CSS custom property in `applyTypography` (`src/lib/appearance.ts`, declared in `src/app.css`), or a new `EditorOptions` field set in `editorOptions()`. The editor never reads `Settings` itself.
 3. For an editor toggle, give it a compartment in `WritingEditor` and handle it in `configure`.
 4. Expose it in `features/settings/organisms/SettingsPanel.svelte` (the `toggles` list handles booleans), with the components in [design-system.md](design-system.md).
 5. Document it in the user guide's settings table.

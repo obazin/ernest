@@ -9,7 +9,7 @@ import { getCM, vim } from '@replit/codemirror-vim';
 import { editorTheme } from './editorTheme';
 import { focusPoint } from './focusPoint';
 import { livePreview } from './livePreview';
-import type { SpellingLanguage } from '../settings';
+import type { SpellingLanguage } from '../spellingLanguages';
 import { setSpellingLanguages, spellChecking, spellingRecheck } from './spelling';
 import { typewriterScrolling } from './typewriter';
 import { spellingSuggestions } from './vim/spellingKeys';
@@ -207,9 +207,4 @@ export class WritingEditor {
             );
         });
     }
-}
-
-export function documentKindForPath(path: string | undefined): DocumentKind {
-    if (!path) return 'markdown';
-    return /\.(md|markdown|mdown|mkd|mdx)$/i.test(path) ? 'markdown' : 'plain-text';
 }

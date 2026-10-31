@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { fontFamilyStack } from '../../../settings';
+    import { fontFamilyStack } from '../../../appearance';
 
     interface Props {
         /** The installed font families, each previewed in itself. */

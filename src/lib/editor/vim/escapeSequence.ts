@@ -1,5 +1,4 @@
 import { Vim } from '@replit/codemirror-vim';
-import { isEscapeSequence } from '../../settings';
 
 /**
  * Leaves insert mode when a short key sequence such as `jk` is typed, so
@@ -9,6 +8,14 @@ import { isEscapeSequence } from '../../settings';
  */
 
 let applied = '';
+
+/**
+ * An insert-mode escape sequence is two or three keys, none of them a space
+ * or `<` (which would start a key name such as `<CR>`).
+ */
+export function isEscapeSequence(keys: string): boolean {
+    return /^[^\s<]{2,3}$/u.test(keys);
+}
 
 export function applyEscapeSequence(keys: string) {
     const next = isEscapeSequence(keys) ? keys : '';

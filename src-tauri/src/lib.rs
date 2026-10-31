@@ -1,6 +1,8 @@
 mod documents;
 mod error;
+mod files;
 mod fonts;
+mod locale;
 mod settings;
 mod spelling;
 
@@ -16,9 +18,9 @@ pub fn run() {
             documents::write_document,
             documents::initial_document_path,
             fonts::list_system_fonts,
+            locale::system_languages,
             settings::load_settings,
             settings::save_settings,
-            settings::system_languages,
             spelling::check_words,
             spelling::spelling_suggestions,
             spelling::add_to_dictionary,

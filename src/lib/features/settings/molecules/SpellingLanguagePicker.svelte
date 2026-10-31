@@ -1,6 +1,6 @@
 <script lang="ts">
     import ToggleChip from '../../../design-system/atoms/ToggleChip.svelte';
-    import { spellingLanguages, type SpellingLanguage } from '../../../settings';
+    import { spellingLanguages, type SpellingLanguage } from '../../../spellingLanguages';
 
     interface Props {
         /** The chosen languages, in the order of `spellingLanguages`; never empty. */

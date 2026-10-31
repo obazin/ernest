@@ -1,14 +1,13 @@
 import { Prec, StateEffect, StateField, type Extension } from '@codemirror/state';
 import { EditorView, showTooltip, type Tooltip } from '@codemirror/view';
 import { Vim } from '@replit/codemirror-vim';
-import { backend } from '../../backend';
 import {
+    addToDictionary,
     checkWords,
     documentWords,
     findMisspelling,
     ignoreWord,
     isSpellChecking,
-    markKnown,
     spellingChanged,
     suggestionsFor,
     wordAt,
@@ -172,12 +171,8 @@ function learn(remember: boolean) {
             ignoreWord(word.text);
             return done();
         }
-        backend
-            .addToDictionary(word.text)
-            .then(() => {
-                markKnown(word.text);
-                done();
-            })
+        addToDictionary(word.text)
+            .then(done)
             .catch((error: unknown) => show(cm, String(error)));
     };
 }

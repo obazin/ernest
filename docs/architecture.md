@@ -18,8 +18,10 @@ Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process ow
 └───────────────────────────┼───────────────────────────────┘
                             ▼
 ┌──────────────────────── Rust ───────────────────────────┐
-│ documents.rs  read / atomic write / launch argument      │
+│ documents.rs  read / write / launch argument             │
+│ files.rs      atomic write, shared by every module       │
 │ fonts.rs      system font families (fontdb)              │
+│ locale.rs     the system's preferred languages           │
 │ settings.rs   settings.json in the app config directory  │
 │ spelling.rs   Hunspell dictionaries, own words           │
 │ lib.rs        builder, plugins, quit interception        │
@@ -39,7 +41,7 @@ The split follows one rule: the backend does what a webview cannot do safely or 
 | `initial_document_path()`                     | `documents.rs` | The first non-flag command-line argument, made absolute.                                                                                                                                                                                                        |
 | `list_system_fonts()`                         | `fonts.rs`     | Sorted, unique family names; async because parsing every font file takes a moment.                                                                                                                                                                              |
 | `load_settings()` / `save_settings(settings)` | `settings.rs`  | Opaque JSON in the app config directory.                                                                                                                                                                                                                        |
-| `system_languages()`                          | `settings.rs`  | The system's preferred languages as BCP 47 tags (`sys-locale`); the first one with a dictionary becomes the spelling language when none is stored. WKWebView's `navigator.languages` reports the app's localisation instead, so the webview cannot answer this. |
+| `system_languages()`                          | `locale.rs`    | The system's preferred languages as BCP 47 tags (`sys-locale`); the first one with a dictionary becomes the spelling language when none is stored. WKWebView's `navigator.languages` reports the app's localisation instead, so the webview cannot answer this. |
 | `check_words(words, languages)`               | `spelling.rs`  | Whether each word is spelled correctly in at least one of the languages.                                                                                                                                                                                        |
 | `spelling_suggestions(word, languages)`       | `spelling.rs`  | Up to nine corrections, merged across the languages.                                                                                                                                                                                                            |
 | `add_to_dictionary(word)`                     | `spelling.rs`  | Adds a word to the personal word list.                                                                                                                                                                                                                          |
@@ -48,11 +50,29 @@ Errors are a single `thiserror` enum serialised as its display string: the front
 
 ### Atomic writes
 
-`write_atomically` resolves symlinks first (so the link survives), writes to a hidden sibling `.<name>.ernest-<pid>`, calls `sync_all`, copies the original permissions, then renames over the target. Rename within one directory is atomic on every supported file system, so a crash or full disk mid-save leaves the previous version intact. The temporary file is removed if any step fails.
+Everything the backend persists (documents, settings, the personal dictionary) goes through `write_atomically` in `files.rs`. It resolves symlinks first (so the link survives), writes to a hidden sibling `.<name>.ernest-<pid>`, calls `sync_all`, copies the original permissions, then renames over the target. Rename within one directory is atomic on every supported file system, so a crash or full disk mid-save leaves the previous version intact. The temporary file is removed if any step fails.
 
 ### Settings ownership
 
-The settings schema, defaults and validation live only in `src/lib/settings.ts`. The backend stores whatever JSON it is given. `normalizeSettings` turns any stored value (missing, malformed, from an older or newer version) into a valid `Settings` object, so adding a setting never touches Rust and a bad file never blocks startup.
+The settings schema, defaults and validation live only in `src/lib/settings.ts`. The backend stores whatever JSON it is given. Validation asks the module that owns each value (`palettes` for a theme, `spellingLanguages.ts` for languages, `isEscapeSequence` in the Vim module for an escape sequence), so a rule is written once. `normalizeSettings` turns any stored value (missing, malformed, from an older or newer version) into a valid `Settings` object, so adding a setting never touches Rust and a bad file never blocks startup.
+
+## Frontend modules
+
+Each module owns one concern, and dependencies point from the page down:
+
+| Module                        | Owns                                                                                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| `App.svelte`                  | Wiring: document lifecycle, shortcuts, persisting settings, routing settings to their consumers |
+| `settings.ts`                 | The settings schema, defaults, limits and normalisation of stored values                        |
+| `appearance.ts`               | How settings look: typography custom properties, font stacks, overlay strengths                 |
+| `themes/palettes.ts`          | Palettes and `applyPalette`                                                                     |
+| `documents.ts`                | Document paths: names, resolving typed paths, dialog filters, path → `DocumentKind`             |
+| `spellingLanguages.ts`        | The languages with a dictionary, mirroring the backend's `Language` enum                        |
+| `backend.ts`                  | Typed wrappers over the Rust commands; the only `invoke` caller                                 |
+| `editor/`                     | CodeMirror and Vim behaviour, configured through `EditorOptions`; never reads `Settings`        |
+| `design-system/`, `features/` | Interface components (see [design-system.md](design-system.md))                                 |
+
+The editor knows nothing of the settings object: `App.svelte` maps `Settings` to `EditorOptions` and to the Vim setters (`setClipboardSharing`, `applyEscapeSequence`, `applyMappings`). Within `editor/`, `spelling.ts` is the only module that calls the backend; the Vim spelling keys go through it so the answer cache stays consistent.
 
 ## Editor
 
@@ -89,7 +109,7 @@ The webview's native spell checker only draws underlines; it cannot be asked whe
 
 The backend (`spelling.rs`) owns the dictionaries: one Hunspell dictionary per `Language` (English (US) from SCOWL, French from Grammalecte, Italian and Spanish from the LibreOffice projects, all as normalised to UTF-8 by wooorm/dictionaries), read with the pure-Rust `spellbook` crate. They ship in `src-tauri/dictionaries/` as bundle resources rather than inside the binary, so every platform spells alike and each keeps its own licence beside it (`<code>.LICENSE.txt`; Italian is GPL-3.0, French MPL-2.0, Spanish GPL/LGPL/MPL). A language's dictionary is parsed the first time a command asks for it and kept in Tauri-managed state. The language codes are a closed serde enum, so the frontend can never name a file. A word is correct when any requested language accepts it; suggestions take the first of each language, then the second, and so on, without repeats. Words the writer adds go to `dictionary.txt` in the app config directory, one per line, written atomically before any dictionary learns them, and are taught to every dictionary as it loads. Parsing and suggesting take tens of milliseconds per language, so the commands run on the blocking pool rather than an async worker; words over 100 characters (Hunspell's limit) are neither judged nor learnt, and one `check_words` call takes at most 10,000 words.
 
-The frontend (`src/lib/editor/spelling.ts`) finds the words: it skips Markdown code, URLs, HTML and link definitions using the syntax tree, plus bare URLs, e-mail addresses and paths, which the tree does not mark. A view plugin collects the words in the rendered viewport and, 300 ms after typing or scrolling pauses, sends the ones it has not seen in one `check_words` call along with the chosen languages. Answers are cached per word, shared by every editor, so the backend only ever sees new words. Changing the languages clears the cache and re-checks the visible words (`spellingRecheck`); answers that arrive for languages no longer chosen are dropped. The word ending at the cursor is not underlined while it is being typed.
+The frontend (`src/lib/editor/spelling.ts`) finds the words and is the editor's only route to the spelling commands; the language list lives in `src/lib/spellingLanguages.ts`. It skips Markdown code, URLs, HTML and link definitions using the syntax tree, plus bare URLs, e-mail addresses and paths, which the tree does not mark. A view plugin collects the words in the rendered viewport and, 300 ms after typing or scrolling pauses, sends the ones it has not seen in one `check_words` call along with the chosen languages. Answers are cached per word, shared by every editor, so the backend only ever sees new words. Changing the languages clears the cache and re-checks the visible words (`spellingRecheck`); answers that arrive for languages no longer chosen are dropped. The word ending at the cursor is not underlined while it is being typed.
 
 ### Vim ex commands
 
@@ -101,7 +121,7 @@ Each command maps to a `DiscardPolicy`: `refuse` (Vim's `E37` message) without a
 
 A theme is a `Palette` of semantic roles (`background`, `surface`, `border`, `foreground`, `muted`, `accent`, `cursor`, `selection`, `heading`, `emphasis`, `strong`, `link`, `code`, `quote`, `highlight`) in `src/lib/themes/palettes.ts`.
 
-`applyPalette` writes each role to a CSS custom property on the document root (`--color-background`, …) and sets `color-scheme`. The same properties are the colour tokens of Tailwind's `@theme` in `src/app.css`, declared with Catppuccin Mocha's values, so the Svelte components style themselves with semantic utilities (`bg-surface`, `text-muted`, `border-border`) that resolve through `var(--color-…)` and follow the palette. The editor theme (`editorTheme.ts`) reads the same properties directly. Typography is passed the same way: `--font-editor` is a theme token too (`font-editor`), and `--editor-font-size`, `--editor-line-height`, `--editor-column-width` and `--editor-vertical-padding` are plain custom properties only the editor theme reads.
+`applyPalette` writes each role to a CSS custom property on the document root (`--color-background`, …) and sets `color-scheme`. The same properties are the colour tokens of Tailwind's `@theme` in `src/app.css`, declared with Catppuccin Mocha's values, so the Svelte components style themselves with semantic utilities (`bg-surface`, `text-muted`, `border-border`) that resolve through `var(--color-…)` and follow the palette. The editor theme (`editorTheme.ts`) reads the same properties directly. Typography is passed the same way, by `applyTypography` in `appearance.ts`: `--font-editor` is a theme token too (`font-editor`), and `--editor-font-size`, `--editor-line-height`, `--editor-column-width` and `--editor-vertical-padding` are plain custom properties only the editor theme reads.
 
 Consequences:
 
@@ -114,7 +134,7 @@ Markdown highlighting relies on the tags emitted by `@lezer/markdown`. Rules for
 
 ## Fonts
 
-`fontdb` parses the name table of every installed font. The English family name is preferred (localised names are not always accepted by webview font matching), and private system faces whose names start with `.` are dropped. The webview resolves CSS `font-family` against the same system fonts, so any returned name can be used directly. The chosen family is quoted and followed by a monospace fallback stack (`fontFamilyStack`).
+`fontdb` parses the name table of every installed font. The English family name is preferred (localised names are not always accepted by webview font matching), and private system faces whose names start with `.` are dropped. The webview resolves CSS `font-family` against the same system fonts, so any returned name can be used directly. The chosen family is quoted and followed by a monospace fallback stack (`fontFamilyStack` in `appearance.ts`).
 
 The settings panel renders each font name in its own face. `content-visibility: auto` keeps the hundreds of rows cheap by skipping layout of the ones not on screen.
 

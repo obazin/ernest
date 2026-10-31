@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { SpellingLanguage } from './settings';
+import type { SpellingLanguage } from './spellingLanguages';
 
 /** Typed wrappers over the Rust commands in `src-tauri/src`. */
 
