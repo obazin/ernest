@@ -1,5 +1,6 @@
 import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { Vim } from '@replit/codemirror-vim';
+import { withLineFeeds } from '../lineBreaks';
 import { mapCommand, type ActionFunction } from './engine';
 import { onRegisterWrite } from './registers';
 
@@ -53,7 +54,9 @@ const paste: ActionFunction = function (this: Record<string, ActionFunction>, cm
     const target = register(name);
     readText()
         .catch(() => null)
-        .then((text) => {
+        .then((copied) => {
+            // Registers keep `\n` line breaks, whatever the copying application used.
+            const text = copied && withLineFeeds(copied);
             // Text Ernest yanked itself comes back unchanged; keep its register,
             // which remembers whether it was yanked as whole lines.
             if (text && text !== target.toString()) target.setText(text, isLinewise(text));

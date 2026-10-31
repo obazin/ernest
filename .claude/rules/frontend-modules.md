@@ -19,6 +19,8 @@ paths:
 | Running asynchronous tasks one at a time (saves)                                 | `src/lib/serialQueue.ts`                                    |
 | Build-time tuning values                                                         | `src/lib/config.ts`                                         |
 | CodeMirror view, compartments, `EditorOptions`                                   | `src/lib/editor/writingEditor.ts`                           |
+| Line breaks inserted into CRLF documents                                         | `src/lib/editor/lineBreaks.ts`                              |
+| The Vim engine reading text with `\n` line breaks                                | `src/lib/editor/vim/lineFeedReads.ts`                       |
 | Spell checking in the editor, including every spelling IPC call and the cache    | `src/lib/editor/spelling.ts`                                |
 | One Vim behaviour each (motion, operator, setter)                                | `src/lib/editor/vim/<behaviour>.ts`                         |
 | Interface components                                                             | `design-system/`, `features/` (see `docs/design-system.md`) |

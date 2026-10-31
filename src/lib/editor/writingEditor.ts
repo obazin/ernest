@@ -8,6 +8,7 @@ import { drawSelection, dropCursor, EditorView, keymap } from '@codemirror/view'
 import { getCM, vim } from '@replit/codemirror-vim';
 import { editorTheme } from './editorTheme';
 import { focusPoint } from './focusPoint';
+import { lineBreakInsertions } from './lineBreaks';
 import { livePreview } from './livePreview';
 import type { SpellingLanguage } from '../spellingLanguages';
 import { setSpellingLanguages, spellChecking, spellingRecheck } from './spelling';
@@ -136,8 +137,11 @@ export class WritingEditor {
             doc: text,
             extensions: [
                 // CodeMirror splits on any line break and joins with `\n`
-                // unless told otherwise; keep Windows files in CRLF.
-                text.includes('\r\n') ? EditorState.lineSeparator.of('\r\n') : [],
+                // unless told otherwise; keep Windows files in CRLF, whatever
+                // line breaks inserted text arrives with.
+                text.includes('\r\n')
+                    ? [EditorState.lineSeparator.of('\r\n'), lineBreakInsertions()]
+                    : [],
                 // Vim must come before every other keymap so it sees keys first.
                 this.vimMode.of(this.vimExtensions()),
                 history(),

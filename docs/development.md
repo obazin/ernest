@@ -66,7 +66,7 @@ src/lib/spellingLanguages.ts     the languages with a dictionary
 src/lib/wordCount.ts             word counting
 src/lib/design-system/           generic atoms, molecules and organisms (see design-system.md)
 src/lib/features/                Ernest's interface: settings panel, status line
-src/lib/editor/                  WritingEditor, typewriter, spelling, Vim commands, editor theme
+src/lib/editor/                  WritingEditor, typewriter, spelling, line breaks, Vim commands, editor theme
 src/lib/editor/vim/              Vim motions, actions and operators tuned for prose
 src/lib/themes/palettes.ts       theme palettes and applyPalette
 src-tauri/src/                   lib.rs, access.rs, blocking.rs, documents.rs, files.rs, fonts.rs, locale.rs, menu.rs, settings.rs, spelling.rs, error.rs

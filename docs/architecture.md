@@ -93,7 +93,7 @@ Focus mode is drawn outside CodeMirror. While it is on, the `focusPoint` plugin 
 
 Extension order matters in one place: `vim()` comes first so it sees keys before any other keymap.
 
-Line endings: CodeMirror normalises to `\n` internally. When a loaded file contains `\r\n`, the state is created with `EditorState.lineSeparator.of('\r\n')` and the text is read back with `state.sliceDoc()`, which joins with that separator, so CRLF files round-trip unchanged.
+Line endings: CodeMirror normalises to `\n` internally. When a loaded file contains `\r\n`, the state is created with `EditorState.lineSeparator.of('\r\n')` and the text is read back with `state.sliceDoc()`, which joins with that separator, so CRLF files round-trip unchanged. Such a state recognises only `\r\n` in inserted text, so `lineBreakInsertions` (`editor/lineBreaks.ts`) turns every `\n` or `\r` in an insertion into a real line break, whether it comes from the Vim engine, an extension or the clipboard. The Vim engine reads text through its adapter with `\n` line breaks in every document (`editor/vim/lineFeedReads.ts`), so `:sort`, visual `r` and yanks never see a `\r`, and registers keep `\n` line breaks.
 
 ### Live preview
 

@@ -3,6 +3,7 @@ import { registerDisplayLineMotions } from './displayLines';
 import { registerFolding } from './folding';
 import { registerHalfPageMotion } from './halfPage';
 import { registerHeadingMotion } from './headingMotion';
+import { registerLineFeedReads } from './lineFeedReads';
 import { registerMoveLines } from './moveLines';
 import { registerOpenLine } from './openLine';
 import { registerReflowOperator } from './reflow';
@@ -18,6 +19,7 @@ let registered = false;
 export function installVimExtensions() {
     if (registered) return;
     registered = true;
+    registerLineFeedReads();
     registerDisplayLineMotions();
     registerHalfPageMotion();
     registerHeadingMotion();

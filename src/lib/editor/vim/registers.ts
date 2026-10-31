@@ -1,4 +1,5 @@
 import { Vim } from '@replit/codemirror-vim';
+import { withLineFeeds } from '../lineBreaks';
 
 /** What the engine writes into a register on a yank, delete or change. */
 export interface RegisterWrite {
@@ -18,7 +19,9 @@ let wrapped = false;
 /**
  * Calls `listener` after every register write. The engine funnels every yank,
  * delete and change through its register controller's `pushText`, created
- * once at load, so wrapping that one method sees them all.
+ * once at load, so wrapping that one method sees them all. The text is kept
+ * with `\n` line breaks, the form the engine pastes with: a yank from a CRLF
+ * document would otherwise carry `\r\n` and paste with stray `\r`s.
  */
 export function onRegisterWrite(listener: Listener) {
     listeners.push(listener);
@@ -34,7 +37,8 @@ export function onRegisterWrite(listener: Listener) {
         ): void;
     };
     const pushText = controller.pushText.bind(controller);
-    controller.pushText = (registerName, operator, text, linewise, blockwise) => {
+    controller.pushText = (registerName, operator, raw, linewise, blockwise) => {
+        const text = withLineFeeds(raw);
         pushText(registerName, operator, text, linewise, blockwise);
         for (const notify of listeners) {
             notify({ registerName, operator, text, linewise: Boolean(linewise) });
