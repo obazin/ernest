@@ -145,11 +145,7 @@ impl Speller {
         self.prepare(languages)?;
         let lists: Vec<Vec<String>> = self
             .dictionaries(languages)
-            .map(|dictionary| {
-                let mut suggestions = Vec::new();
-                dictionary.suggest(word, &mut suggestions);
-                suggestions
-            })
+            .map(|dictionary| suggestions_from(dictionary, word))
             .collect();
         let longest = lists.iter().map(Vec::len).max().unwrap_or(0);
         let mut merged: Vec<String> = Vec::new();
@@ -189,6 +185,56 @@ impl Speller {
         }
         Ok(())
     }
+}
+
+/// A dictionary's corrections for `word`. For a capitalised word spellbook
+/// lists the corrections of the word as written before those of its lower
+/// case, so `Teh` offered `The` ninth, behind `Eh` and `Th`, while `teh`
+/// offers `the` first. A capitalised word is therefore corrected in lower
+/// case and the answers capitalised; its own corrections, which find proper
+/// nouns, follow only when that leaves room, which saves a second search.
+fn suggestions_from(dictionary: &Dictionary, word: &str) -> Vec<String> {
+    let mut found = Vec::new();
+    let Some(lowered) = lower_case_of_capitalised(word) else {
+        dictionary.suggest(word, &mut found);
+        return found;
+    };
+    dictionary.suggest(&lowered, &mut found);
+    let mut merged: Vec<String> = Vec::new();
+    for suggestion in found.iter().map(|suggestion| capitalised(suggestion)) {
+        if !merged.contains(&suggestion) {
+            merged.push(suggestion);
+        }
+    }
+    if merged.len() < SUGGESTION_LIMIT {
+        let mut own = Vec::new();
+        dictionary.suggest(word, &mut own);
+        for suggestion in own {
+            if !merged.contains(&suggestion) {
+                merged.push(suggestion);
+            }
+        }
+    }
+    merged
+}
+
+/// `word` in lower case when only its first letter is upper case (`Teh`);
+/// `None` for lower-case words, acronyms and mixed case (`TEH`, `iPhone`).
+fn lower_case_of_capitalised(word: &str) -> Option<String> {
+    let mut characters = word.chars();
+    let first = characters.next()?;
+    let rest = characters.as_str();
+    let capitalised = first.is_uppercase() && !rest.chars().any(char::is_uppercase);
+    capitalised.then(|| word.to_lowercase())
+}
+
+/// `word` with its first letter upper case.
+fn capitalised(word: &str) -> String {
+    let mut characters = word.chars();
+    characters
+        .next()
+        .map(|first| first.to_uppercase().chain(characters).collect())
+        .unwrap_or_default()
 }
 
 /// Compares bytes first: a character takes at most four, so a longer
@@ -346,6 +392,30 @@ mod tests {
         let suggestions = speller.suggest("paragrpah", &languages(ENGLISH)).unwrap();
         assert!(suggestions.iter().any(|word| word == "paragraph"));
         assert!(suggestions.len() <= SUGGESTION_LIMIT);
+    }
+
+    #[test]
+    fn ranks_the_obvious_correction_of_a_capitalised_word_first() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut speller = speller_in(&directory);
+        for (typo, correction) in [
+            ("Teh", "The"),
+            ("Thier", "Their"),
+            ("teh", "the"),
+            ("Londn", "London"),
+        ] {
+            let suggestions = speller.suggest(typo, &languages(ENGLISH)).unwrap();
+            assert_eq!(suggestions.first().map(String::as_str), Some(correction));
+        }
+    }
+
+    #[test]
+    fn lowers_only_words_capitalised_on_their_first_letter() {
+        assert_eq!(lower_case_of_capitalised("Teh").as_deref(), Some("teh"));
+        assert_eq!(lower_case_of_capitalised("Été").as_deref(), Some("été"));
+        assert_eq!(lower_case_of_capitalised("teh"), None);
+        assert_eq!(lower_case_of_capitalised("TEH"), None);
+        assert_eq!(lower_case_of_capitalised("iPhone"), None);
     }
 
     #[test]

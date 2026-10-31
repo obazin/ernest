@@ -45,7 +45,7 @@ pub async fn read_document(app: AppHandle, window: Window, path: PathBuf) -> Res
     on_blocking_pool(move || {
         let target = app
             .state::<DocumentAccess>()
-            .check(&path, ask_writer(&app, &window, "open"))?;
+            .check(&path, ask_writer(&app, &window, Action::Open))?;
         Ok(Document {
             // The name the writer used, so a symlink keeps its own title.
             path: absolute(&path),
@@ -78,7 +78,7 @@ pub async fn write_document(
         }
         let target = app
             .state::<DocumentAccess>()
-            .check(&path, ask_writer(&app, &window, "save"))?;
+            .check(&path, ask_writer(&app, &window, Action::Save))?;
         save(&target, &absolute(&path), &text, expected.as_deref())
     })
     .await?
@@ -168,6 +168,31 @@ pub async fn choose_document_to_save(
     .await
 }
 
+/// What the webview asked to do with a path `ask_writer` confirms.
+#[derive(Clone, Copy)]
+enum Action {
+    Open,
+    Save,
+}
+
+impl Action {
+    /// As it reads in a sentence: "Ernest was asked to open …".
+    fn verb(self) -> &'static str {
+        match self {
+            Self::Open => "open",
+            Self::Save => "save",
+        }
+    }
+
+    /// As it reads on a button and in a title.
+    fn label(self) -> &'static str {
+        match self {
+            Self::Open => "Open",
+            Self::Save => "Save",
+        }
+    }
+}
+
 /// A native confirmation for a path `access.rs` has a concern about. It is
 /// shown by the backend, so the webview can neither answer nor skip it.
 ///
@@ -179,10 +204,10 @@ pub async fn choose_document_to_save(
 fn ask_writer<'context>(
     app: &'context AppHandle,
     window: &'context Window,
-    action: &'static str,
+    action: Action,
 ) -> impl FnOnce(&Path, &Concern) -> bool + 'context {
     move |path, concern| {
-        let allow = capitalised(action);
+        let allow = action.label().to_owned();
         let buttons = MessageDialogButtons::YesNoCancelCustom(
             format!("Don't {allow}"),
             allow.clone(),
@@ -190,7 +215,8 @@ fn ask_writer<'context>(
         );
         app.dialog()
             .message(format!(
-                "Ernest was asked to {action} “{}”, which {}.\n\nAllow it only if you typed this path yourself.",
+                "Ernest was asked to {} “{}”, which {}.\n\nAllow it only if you typed this path yourself.",
+                action.verb(),
                 path.display(),
                 concern.describe()
             ))
@@ -201,14 +227,6 @@ fn ask_writer<'context>(
             .blocking_show_with_result()
             == MessageDialogResult::Custom(allow)
     }
-}
-
-fn capitalised(word: &str) -> String {
-    let mut characters = word.chars();
-    characters
-        .next()
-        .map(|first| first.to_uppercase().chain(characters).collect())
-        .unwrap_or_default()
 }
 
 fn text_file_dialog(app: &AppHandle, window: &Window) -> FileDialogBuilder<Wry> {
