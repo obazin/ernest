@@ -29,8 +29,8 @@
             gradientTransform="translate(0.5 0.5) scale(2 1) translate(-0.5 -0.5)"
         >
             <stop offset="0" stop-color="currentColor" stop-opacity="0" />
-            <stop offset="0.04" stop-color="currentColor" stop-opacity="0" />
-            <stop offset="0.25" stop-color="currentColor" stop-opacity="1" />
+            <stop offset="0.1" stop-color="currentColor" stop-opacity="0" />
+            <stop offset="0.3" stop-color="currentColor" stop-opacity="1" />
         </radialGradient>
     </defs>
     <rect width="100%" height="100%" fill="url(#spotlight-fade)" />
