@@ -15,6 +15,11 @@ export const backend = {
     /** Resolves to the absolute path written. */
     writeDocument: (path: string, text: string) => invoke<string>('write_document', { path, text }),
     initialDocumentPath: () => invoke<string | null>('initial_document_path'),
+    /** Shows the open dialog; the chosen file may be read and written whatever its name. */
+    chooseDocumentToOpen: () => invoke<string | null>('choose_document_to_open'),
+    /** Shows the save dialog, seeded from `current`; the chosen path is granted like an opened one. */
+    chooseDocumentToSave: (current: string | undefined) =>
+        invoke<string | null>('choose_document_to_save', { current: current ?? null }),
     listSystemFonts: () => invoke<string[]>('list_system_fonts'),
     loadSettings: () => invoke<unknown>('load_settings'),
     saveSettings: (settings: object) => invoke<void>('save_settings', { settings }),

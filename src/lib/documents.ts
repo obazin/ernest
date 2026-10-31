@@ -3,15 +3,10 @@ import type { DocumentKind } from './editor/writingEditor';
 
 /**
  * Document paths as the page handles them: naming, resolving what the writer
- * typed, and choosing how a file is edited. Reading and writing go through
- * `backend.ts`.
+ * typed, and choosing how a file is edited. Reading, writing and the file
+ * dialogs go through `backend.ts`, since the backend decides which paths the
+ * webview may touch.
  */
-
-/** The filters the open and save dialogs offer. */
-export const textFileFilters = [
-    { name: 'Text', extensions: ['md', 'markdown', 'txt', 'text'] },
-    { name: 'All files', extensions: ['*'] },
-];
 
 /** The file name at the end of `path`, for either separator. */
 export function baseName(path: string): string {

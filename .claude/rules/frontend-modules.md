@@ -13,7 +13,7 @@ paths:
 | Settings schema, defaults, limits, normalising stored values                     | `src/lib/settings.ts`                                       |
 | How settings look: CSS custom properties, font stacks, overlay strengths         | `src/lib/appearance.ts`                                     |
 | Palettes and applying them                                                       | `src/lib/themes/palettes.ts`                                |
-| Document paths: names, resolving typed paths, dialog filters, path → kind        | `src/lib/documents.ts`                                      |
+| Document paths: names, resolving typed paths, path → kind                        | `src/lib/documents.ts`                                      |
 | Languages with a dictionary (mirrors `Language` in `spelling.rs`)                | `src/lib/spellingLanguages.ts`                              |
 | Calling Rust (`invoke`)                                                          | `src/lib/backend.ts` only                                   |
 | Build-time tuning values                                                         | `src/lib/config.ts`                                         |

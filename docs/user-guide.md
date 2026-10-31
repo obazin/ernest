@@ -30,6 +30,8 @@ Files are read and written as UTF-8. A file that is not valid UTF-8 is refused r
 
 Saving is safe against crashes: the new text is written to a temporary file next to the original, flushed to disk, then renamed over it, so an interrupted save leaves the previous version intact. Saving through a symbolic link updates the target and keeps the link, and the file's permissions are kept.
 
+A path typed after `:e`, `:w` or `:sav` must name a Markdown or text file (`.md`, `.markdown`, `.mdown`, `.mkd`, `.txt`, `.text`) on a local disk and outside hidden folders such as `~/.config`; any other file opens and saves through Mod+O and Mod+Shift+S, or from the command line. This keeps Ernest's file access to what you write in, even if the interface were compromised.
+
 Opening a path that does not exist yet (from the command line or with `:e`) gives an empty document under that name; the file is created on the first save. This matches `vim new.md`.
 
 ### Opening a file on launch

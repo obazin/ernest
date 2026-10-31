@@ -18,7 +18,8 @@ Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process ow
 └───────────────────────────┼───────────────────────────────┘
                             ▼
 ┌──────────────────────── Rust ───────────────────────────┐
-│ documents.rs  read / write / launch argument             │
+│ access.rs     which paths the webview may touch          │
+│ documents.rs  read / write / dialogs / launch argument   │
 │ files.rs      atomic write, shared by every module       │
 │ fonts.rs      system font families (fontdb)              │
 │ locale.rs     the system's preferred languages           │
@@ -34,19 +35,24 @@ The split follows one rule: the backend does what a webview cannot do safely or 
 
 ### Backend commands
 
-| Command                                       | Module         | Purpose                                                                                                                                                                                                                                                         |
-| --------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `read_document(path)`                         | `documents.rs` | Returns `{ path, text, exists }`. A missing file is not an error: it returns `exists: false` with empty text so `:e new.md` works like Vim. Non-UTF-8 content is refused.                                                                                       |
-| `write_document(path, text)`                  | `documents.rs` | Atomic write; returns the absolute path written.                                                                                                                                                                                                                |
-| `initial_document_path()`                     | `documents.rs` | The first non-flag command-line argument, made absolute.                                                                                                                                                                                                        |
-| `list_system_fonts()`                         | `fonts.rs`     | Sorted, unique family names; async because parsing every font file takes a moment.                                                                                                                                                                              |
-| `load_settings()` / `save_settings(settings)` | `settings.rs`  | Opaque JSON in the app config directory.                                                                                                                                                                                                                        |
-| `system_languages()`                          | `locale.rs`    | The system's preferred languages as BCP 47 tags (`sys-locale`); the first one with a dictionary becomes the spelling language when none is stored. WKWebView's `navigator.languages` reports the app's localisation instead, so the webview cannot answer this. |
-| `check_words(words, languages)`               | `spelling.rs`  | Whether each word is spelled correctly in at least one of the languages.                                                                                                                                                                                        |
-| `spelling_suggestions(word, languages)`       | `spelling.rs`  | Up to nine corrections, merged across the languages.                                                                                                                                                                                                            |
-| `add_to_dictionary(word)`                     | `spelling.rs`  | Adds a word to the personal word list.                                                                                                                                                                                                                          |
+| Command                                                          | Module         | Purpose                                                                                                                                                                                                                                                         |
+| ---------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read_document(path)`                                            | `documents.rs` | Returns `{ path, text, exists }`. A missing file is not an error: it returns `exists: false` with empty text so `:e new.md` works like Vim. Non-UTF-8 content is refused.                                                                                       |
+| `write_document(path, text)`                                     | `documents.rs` | Atomic write; returns the absolute path written.                                                                                                                                                                                                                |
+| `initial_document_path()`                                        | `documents.rs` | The first non-flag command-line argument, made absolute and granted.                                                                                                                                                                                            |
+| `choose_document_to_open()` / `choose_document_to_save(current)` | `documents.rs` | The native open and save dialogs; the chosen path is granted.                                                                                                                                                                                                   |
+| `list_system_fonts()`                                            | `fonts.rs`     | Sorted, unique family names; async because parsing every font file takes a moment.                                                                                                                                                                              |
+| `load_settings()` / `save_settings(settings)`                    | `settings.rs`  | Opaque JSON in the app config directory.                                                                                                                                                                                                                        |
+| `system_languages()`                                             | `locale.rs`    | The system's preferred languages as BCP 47 tags (`sys-locale`); the first one with a dictionary becomes the spelling language when none is stored. WKWebView's `navigator.languages` reports the app's localisation instead, so the webview cannot answer this. |
+| `check_words(words, languages)`                                  | `spelling.rs`  | Whether each word is spelled correctly in at least one of the languages.                                                                                                                                                                                        |
+| `spelling_suggestions(word, languages)`                          | `spelling.rs`  | Up to nine corrections, merged across the languages.                                                                                                                                                                                                            |
+| `add_to_dictionary(word)`                                        | `spelling.rs`  | Adds a word to the personal word list.                                                                                                                                                                                                                          |
 
 Errors are a single `thiserror` enum serialised as its display string: the frontend only ever shows them, it never branches on them.
+
+### Document access
+
+`read_document` and `write_document` accept a path only if it was granted or names a text document (`access.rs`). A path is granted when the writer chose it outside the webview: on the command line, or in the open and save dialogs, which therefore run in the backend rather than through the webview's dialog plugin. Any other path, as typed after `:e`, `:w` or `:sav`, must be a text document by name: on a local disk (a Windows UNC, WebDAV or device path is refused before any file-system call, since resolving it would contact the network), with no hidden folder or file on the way, not a Windows device name, ending in `.md`, `.markdown`, `.mdown`, `.mkd`, `.txt` or `.text`, and resolving through symlinks to a file that passes the same test. `check` returns the resolved file and the commands read or write exactly that path. Grants match on the path as given and as resolved, and last until the app quits. The save dialog is seeded only from a path the webview may already write. A compromised webview can thus only reach visible text documents and the files the writer picked, never `~/.ssh`, a shell profile or a network share.
 
 ### Atomic writes
 
@@ -66,7 +72,7 @@ Each module owns one concern, and dependencies point from the page down:
 | `settings.ts`                 | The settings schema, defaults, limits and normalisation of stored values                        |
 | `appearance.ts`               | How settings look: typography custom properties, font stacks, overlay strengths                 |
 | `themes/palettes.ts`          | Palettes and `applyPalette`                                                                     |
-| `documents.ts`                | Document paths: names, resolving typed paths, dialog filters, path → `DocumentKind`             |
+| `documents.ts`                | Document paths: names, resolving typed paths, path → `DocumentKind`                             |
 | `spellingLanguages.ts`        | The languages with a dictionary, mirroring the backend's `Language` enum                        |
 | `backend.ts`                  | Typed wrappers over the Rust commands; the only `invoke` caller                                 |
 | `editor/`                     | CodeMirror and Vim behaviour, configured through `EditorOptions`; never reads `Settings`        |
@@ -148,4 +154,4 @@ The settings panel renders each font name in its own face. `content-visibility: 
 ## Security
 
 - **Content Security Policy** (`tauri.conf.json`): scripts and styles only from the app itself (inline styles are allowed for CodeMirror and Svelte), no frames, no objects, IPC as the only connection.
-- **Capabilities** (`src-tauri/capabilities/default.json`): the main window gets core defaults, the specific window operations the interface uses (show, focus, drag, full screen, title, close, destroy) and the dialog operations it uses (open, save, ask, message). No file-system plugin is exposed to the webview; all file access goes through the typed commands above.
+- **Capabilities** (`src-tauri/capabilities/default.json`): the main window gets core defaults, the specific window operations the interface uses (show, focus, drag, full screen, title, close, destroy) and the dialog operations it uses (ask, message). The file dialogs and all file access go through the typed commands above, gated by document access; no file-system plugin is exposed to the webview.

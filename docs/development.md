@@ -59,7 +59,7 @@ src/App.svelte                   document lifecycle, shortcuts, settings wiring
 src/app.css                      Tailwind entry: design tokens (@theme), base styles
 src/lib/appearance.ts            typography custom properties, font stacks, overlay strengths
 src/lib/backend.ts               typed wrappers over the Rust commands
-src/lib/documents.ts             document paths: names, resolution, dialog filters, kind
+src/lib/documents.ts             document paths: names, resolution, kind
 src/lib/settings.ts              settings schema, defaults, validation
 src/lib/spellingLanguages.ts     the languages with a dictionary
 src/lib/wordCount.ts             word counting
@@ -68,7 +68,7 @@ src/lib/features/                Ernest's interface: settings panel, status line
 src/lib/editor/                  WritingEditor, typewriter, spelling, Vim commands, editor theme
 src/lib/editor/vim/              Vim motions, actions and operators tuned for prose
 src/lib/themes/palettes.ts       theme palettes and applyPalette
-src-tauri/src/                   lib.rs, documents.rs, files.rs, fonts.rs, locale.rs, settings.rs, spelling.rs, error.rs
+src-tauri/src/                   lib.rs, access.rs, documents.rs, files.rs, fonts.rs, locale.rs, settings.rs, spelling.rs, error.rs
 src-tauri/dictionaries/          Hunspell dictionaries (en-US, fr, it, es), bundled as resources, with their licences
 src-tauri/tauri.conf.json        app, window, bundle and CSP configuration
 src-tauri/tauri.macos.conf.json  macOS window overrides (overlay title bar)

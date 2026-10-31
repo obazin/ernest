@@ -2,7 +2,7 @@
     import { onMount } from 'svelte';
     import { listen } from '@tauri-apps/api/event';
     import { getCurrentWindow } from '@tauri-apps/api/window';
-    import { ask, open, save } from '@tauri-apps/plugin-dialog';
+    import { ask } from '@tauri-apps/plugin-dialog';
     import { antiGlareOpacity, applyTypography, focusOverlayOpacity } from './lib/appearance';
     import { backend } from './lib/backend';
     import DarkenOverlay from './lib/design-system/atoms/DarkenOverlay.svelte';
@@ -15,7 +15,7 @@
     import { applyMappings } from './lib/editor/vim/mappings';
     import { installVimCommands } from './lib/editor/vimCommands';
     import { WritingEditor, type EditorOptions } from './lib/editor/writingEditor';
-    import { baseName, documentKindForPath, resolvePath, textFileFilters } from './lib/documents';
+    import { baseName, documentKindForPath, resolvePath } from './lib/documents';
     import {
         clamp,
         defaultSettings,
@@ -152,7 +152,7 @@
         if (!(await mayDiscard(policy))) return;
         const target = path
             ? await resolvePath(path, documentPath)
-            : await open({ multiple: false, directory: false, filters: textFileFilters });
+            : await backend.chooseDocumentToOpen();
         if (!target) return;
         const file = await backend.readDocument(target);
         loadDocument(file.text, file.path);
@@ -180,10 +180,7 @@
             ? await resolvePath(path, documentPath)
             : documentPath;
         if (!target || (saveAs && !path)) {
-            target = await save({
-                defaultPath: documentPath ?? 'Untitled.md',
-                filters: textFileFilters,
-            });
+            target = await backend.chooseDocumentToSave(documentPath);
         }
         if (!target) return false;
 
