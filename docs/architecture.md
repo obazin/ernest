@@ -24,15 +24,16 @@ Ernest is a [Tauri 2](https://v2.tauri.app) application. A small Rust process ow
 │ files.rs      atomic write, shared by every module       │
 │ fonts.rs      system font families (fontdb)              │
 │ locale.rs     the system's preferred languages           │
+│ menu.rs       app menu; Quit asks the frontend first     │
 │ settings.rs   settings.json in the app config directory  │
 │ spelling.rs   Hunspell dictionaries, own words           │
-│ lib.rs        builder, plugins, quit interception        │
+│ lib.rs        builder, plugins, commands, state          │
 └──────────────────────────────────────────────────────────┘
 ```
 
 ## Responsibilities
 
-The split follows one rule: the backend does what a webview cannot do safely or at all (touch arbitrary files, enumerate fonts, intercept application quit), and the frontend owns everything else, including every decision about the document's state.
+The split follows one rule: the backend does what a webview cannot do safely or at all (touch arbitrary files, enumerate fonts, route the macOS Quit menu item), and the frontend owns everything else, including every decision about the document's state.
 
 ### Backend commands
 
@@ -152,7 +153,7 @@ The settings panel renders each font name in its own face. `content-visibility: 
 - The main window starts hidden (`"visible": false`) and is shown once settings and theme are applied, so it never flashes unstyled.
 - On macOS, `tauri.macos.conf.json` uses an overlay title bar with a hidden title; a transparent 28 px strip with `data-tauri-drag-region` keeps the window draggable.
 - Window close goes through `onCloseRequested`, which can cancel it when the user keeps unsaved changes.
-- Application quit (Cmd+Q, the app menu) arrives in Rust as `RunEvent::ExitRequested` with no exit code. While a window is open, `lib.rs` prevents the exit and emits `quit-requested`; the frontend runs the unsaved-changes check and destroys its window, and the last window closing ends the process. An explicit `exit(code)` is never intercepted.
+- Quitting goes through the frontend. Closing the window raises a close request the frontend intercepts; the Quit menu item (Cmd+Q on macOS) is Ernest's own, built in `menu.rs`, and emits `quit-requested`. Either way the frontend runs the unsaved-changes check and destroys the window, and the last window closing ends the process. The stock macOS Quit item would send `terminate:` straight to `NSApp`, which ends the process without any event Rust could prevent; Quit from the Dock and logging out still do, and skip the check.
 
 ## Security
 

@@ -5,13 +5,12 @@ mod error;
 mod files;
 mod fonts;
 mod locale;
+mod menu;
 mod settings;
 mod spelling;
 
-use tauri::{Emitter, Manager, RunEvent};
-
 pub fn run() {
-    let app = tauri::Builder::default()
+    menu::install(tauri::Builder::default())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(access::DocumentAccess::default())
@@ -30,22 +29,6 @@ pub fn run() {
             spelling::spelling_suggestions,
             spelling::add_to_dictionary,
         ])
-        .build(tauri::generate_context!())
-        .expect("error while building the Ernest application");
-
-    app.run(|app, event| {
-        // An application-level quit (Cmd+Q, the app menu) while a window is
-        // still open goes to the frontend first, which owns the unsaved-changes
-        // check and destroys its window once it is safe; that last window
-        // closing then ends the process. `code: Some(_)` is an explicit
-        // `exit()` and is never intercepted.
-        if let RunEvent::ExitRequested {
-            code: None, api, ..
-        } = &event
-            && !app.webview_windows().is_empty()
-        {
-            api.prevent_exit();
-            let _ = app.emit("quit-requested", ());
-        }
-    });
+        .run(tauri::generate_context!())
+        .expect("error while running the Ernest application");
 }

@@ -206,7 +206,7 @@ Each theme colours the whole window: the page, the text and Markdown syntax, the
 ## Known limitations
 
 - Only tested on macOS so far. Windows and Linux builds are configured but have not yet been run; Linux renders through WebKitGTK, whose text rendering and performance are the weakest of the three webviews.
-- Quitting from the application menu (Cmd+Q) is routed through the unsaved-changes check, but that path has not been verified on every platform.
+- Logging out or shutting down, and on macOS Quit from the Dock menu, close Ernest without the unsaved-changes check; closing the window, Cmd+Q and the application menu ask first.
 - Undoing back to the saved text still shows the document as modified.
 - No final newline is added on save (Vim's `fixeol` behaviour).
 - One document per window, and one window.
