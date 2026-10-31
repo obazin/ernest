@@ -27,6 +27,8 @@
     --color-code: #a6e3a1;
     --color-quote: #94e2d5;
     --color-highlight: #f9e2af; /* search matches, transient highlights */
+    /* Not a palette role: the grey the anti-glare overlay darkens towards. */
+    --color-darken-overlay: #808080;
 
     /* ── Fonts ─────────────────────────────────────────────────────────── */
     --font-sans: system-ui, -apple-system, 'Segoe UI', 'Cantarell', 'Noto Sans', sans-serif;

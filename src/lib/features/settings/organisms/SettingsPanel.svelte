@@ -89,6 +89,18 @@
     </section>
 
     <section>
+        <SectionHeading>Anti-glare</SectionHeading>
+        <SliderField
+            label="Strength"
+            minimum={limits.antiGlare.minimum}
+            maximum={limits.antiGlare.maximum}
+            step={limits.antiGlare.step}
+            format={(value) => (value === 0 ? 'off' : `${value}%`)}
+            bind:value={settings.antiGlare}
+        />
+    </section>
+
+    <section>
         <SectionHeading>Typography</SectionHeading>
         {#each sliders as slider (slider.key)}
             <SliderField

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    antiGlareOpacity,
     defaultSettings,
     fontFamilyStack,
     isEscapeSequence,
@@ -33,6 +34,7 @@ describe('normalizeSettings', () => {
             columnWidth: Number.NaN,
             typewriterAnchor: 95,
             typewriterGlide: 20,
+            antiGlare: -10,
             typewriter: 'yes',
             vimClipboard: 0,
         });
@@ -41,8 +43,17 @@ describe('normalizeSettings', () => {
         expect(settings.columnWidth).toBe(defaultSettings.columnWidth);
         expect(settings.typewriterAnchor).toBe(80);
         expect(settings.typewriterGlide).toBe(50);
+        expect(settings.antiGlare).toBe(0);
         expect(settings.typewriter).toBe(defaultSettings.typewriter);
         expect(settings.vimClipboard).toBe(defaultSettings.vimClipboard);
+    });
+});
+
+describe('antiGlareOpacity', () => {
+    it('maps the full strength range onto opacities 0 to 0.7', () => {
+        expect(antiGlareOpacity(0)).toBe(0);
+        expect(antiGlareOpacity(50)).toBeCloseTo(0.35);
+        expect(antiGlareOpacity(100)).toBeCloseTo(0.7);
     });
 });
 

@@ -5,6 +5,7 @@
     import { getCurrentWindow } from '@tauri-apps/api/window';
     import { ask, open, save } from '@tauri-apps/plugin-dialog';
     import { backend } from './lib/backend';
+    import DarkenOverlay from './lib/design-system/atoms/DarkenOverlay.svelte';
     import SettingsPanel from './lib/features/settings/organisms/SettingsPanel.svelte';
     import StatusLine from './lib/features/status/organisms/StatusLine.svelte';
     import { installVimExtensions } from './lib/editor/vim';
@@ -14,6 +15,7 @@
     import { installVimCommands } from './lib/editor/vimCommands';
     import { documentKindForPath, WritingEditor } from './lib/editor/writingEditor';
     import {
+        antiGlareOpacity,
         clamp,
         defaultSettings,
         fontFamilyStack,
@@ -380,3 +382,6 @@
         }}
     />
 {/if}
+
+<!-- Anti-glare: drawn over everything, the settings panel included, and click-through. -->
+<DarkenOverlay strength={antiGlareOpacity(settings.antiGlare)} />

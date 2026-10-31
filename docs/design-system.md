@@ -45,6 +45,7 @@ Every component is styled with the semantic tokens of `src/app.css` (CLAUDE.md r
 | Component        | Tier     | Props                                                                         | Composed of    |
 | ---------------- | -------- | ----------------------------------------------------------------------------- | -------------- |
 | `ColorDot`       | Atom     | `color` (a colour shown as data)                                              |                |
+| `DarkenOverlay`  | Atom     | `strength` (0–1)                                                              |                |
 | `KeyCapButton`   | Atom     | `key` (shown as a key cap), `label` (for assistive tech), `onclick`           |                |
 | `SectionHeading` | Atom     | `children`                                                                    |                |
 | `TextArea`       | Atom     | bindable `value`, any `<textarea>` attribute, `class`                         |                |
@@ -54,7 +55,7 @@ Every component is styled with the semantic tokens of `src/app.css` (CLAUDE.md r
 | `SliderField`    | Molecule | `label`, `minimum`, `maximum`, `step`, bindable `value`, `format`, `disabled` |                |
 | `SidePanel`      | Organism | `title`, `onclose`, `children`                                                | `KeyCapButton` |
 
-`TextInput` and `TextArea` take text in the writer's own font (`font-editor`), for values that are typed as they would be in the editor: key sequences, Vim mappings. `SidePanel` is a modal dialog sliding in from the right edge: it takes focus when it opens and closes on Escape, on its `esc` key cap or on a click outside.
+`TextInput` and `TextArea` take text in the writer's own font (`font-editor`), for values that are typed as they would be in the editor: key sequences, Vim mappings. `DarkenOverlay` covers the whole window with mid grey in darken blend mode, lowering the brightness of everything lighter than the grey, and lets every pointer event through. `SidePanel` is a modal dialog sliding in from the right edge: it takes focus when it opens and closes on Escape, on its `esc` key cap or on a click outside.
 
 ### Features
 

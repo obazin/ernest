@@ -2,6 +2,11 @@ import { defaultPaletteIdentifier, palettes } from './themes/palettes';
 
 export interface Settings {
     theme: string;
+    /**
+     * Strength of the anti-glare overlay over the whole window, in percent;
+     * 0 is off. See `antiGlareOpacity` for how it maps to the overlay.
+     */
+    antiGlare: number;
     /** A system font family name; empty means the default monospace stack. */
     fontFamily: string;
     fontSize: number;
@@ -50,6 +55,7 @@ export type BooleanSetting = {
 
 export const defaultSettings: Settings = {
     theme: defaultPaletteIdentifier,
+    antiGlare: 0,
     fontFamily: '',
     fontSize: 18,
     lineHeight: 1.7,
@@ -69,12 +75,21 @@ export const defaultSettings: Settings = {
 };
 
 export const limits = {
+    antiGlare: { minimum: 0, maximum: 100, step: 5 },
     fontSize: { minimum: 10, maximum: 40, step: 1 },
     lineHeight: { minimum: 1, maximum: 2.5, step: 0.05 },
     columnWidth: { minimum: 360, maximum: 1400, step: 20 },
     typewriterAnchor: { minimum: 40, maximum: 80, step: 1 },
     typewriterGlide: { minimum: 50, maximum: 500, step: 10 },
 } as const;
+
+/**
+ * Overlay opacity for an anti-glare strength: the full slider spans 0–0.7,
+ * since past that the window flattens to an unreadable grey.
+ */
+export function antiGlareOpacity(strength: number): number {
+    return (strength / 100) * 0.7;
+}
 
 /**
  * Builds valid settings from whatever was stored: unknown keys are dropped,
@@ -117,6 +132,7 @@ export function normalizeSettings(
 
     return {
         theme,
+        antiGlare: number('antiGlare'),
         fontFamily: typeof source.fontFamily === 'string' ? source.fontFamily : '',
         fontSize: number('fontSize'),
         lineHeight: number('lineHeight'),
