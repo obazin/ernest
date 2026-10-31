@@ -42,7 +42,11 @@
             label: 'Typewriter scrolling',
             hint: 'Keep the current line at a fixed height',
         },
-        { key: 'focusMode', label: 'Focus mode', hint: 'Dim every paragraph but this one' },
+        {
+            key: 'focusMode',
+            label: 'Focus mode',
+            hint: 'Fade the text away from the line being written; replaces anti-glare',
+        },
         {
             key: 'livePreview',
             label: 'Live preview',
@@ -92,6 +96,7 @@
         <SectionHeading>Anti-glare</SectionHeading>
         <SliderField
             label="Strength"
+            disabled={settings.focusMode}
             minimum={limits.antiGlare.minimum}
             maximum={limits.antiGlare.maximum}
             step={limits.antiGlare.step}

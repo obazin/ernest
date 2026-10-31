@@ -105,10 +105,6 @@ const chrome = EditorView.theme({
         color: 'var(--color-foreground)',
         fontFamily: 'var(--font-sans)',
     },
-    // Paragraphs other than the one being written fade back (focus mode).
-    '&.focus-mode .cm-line': { transition: 'opacity 160ms ease' },
-    '&.focus-mode .cm-line:not(.cm-activeLine)': { opacity: 'var(--editor-dimmed-opacity)' },
-    '.cm-activeLine': { backgroundColor: 'transparent' },
 });
 
 const markdownHighlight = HighlightStyle.define([

@@ -29,7 +29,7 @@ import { config, easings } from '../config';
 const anchorEveryScroll = EditorView.scrollHandler.of((view, range) => {
     const target = Math.max(
         0,
-        view.scrollDOM.scrollTop + visualLineCentre(view, range.head) - anchorY(view),
+        view.scrollDOM.scrollTop + visualLineCentre(view, range.head) - typewriterAnchorY(view),
     );
     if (view.state.field(scrollStyle, false) === 'animated' && !prefersReducedMotion()) {
         glideTo(view, range.head, target);
@@ -71,7 +71,7 @@ const anchor = Facet.define<number, number>({
 });
 
 /** Screen y of the anchor. */
-function anchorY(view: EditorView): number {
+export function typewriterAnchorY(view: EditorView): number {
     const bounds = view.scrollDOM.getBoundingClientRect();
     return bounds.top + bounds.height * view.state.facet(anchor);
 }
@@ -133,7 +133,9 @@ function settle(view: EditorView, position: number) {
         read: (view) =>
             Math.max(
                 0,
-                view.scrollDOM.scrollTop + visualLineCentre(view, position) - anchorY(view),
+                view.scrollDOM.scrollTop +
+                    visualLineCentre(view, position) -
+                    typewriterAnchorY(view),
             ),
         write: (target, view) => {
             if (Math.abs(target - view.scrollDOM.scrollTop) >= 1) view.scrollDOM.scrollTop = target;

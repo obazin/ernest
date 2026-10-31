@@ -4,15 +4,10 @@ import { codeFolding } from '@codemirror/language';
 import { languages } from '@codemirror/language-data';
 import { search, searchKeymap } from '@codemirror/search';
 import { Compartment, EditorState, type Extension } from '@codemirror/state';
-import {
-    drawSelection,
-    dropCursor,
-    EditorView,
-    highlightActiveLine,
-    keymap,
-} from '@codemirror/view';
+import { drawSelection, dropCursor, EditorView, keymap } from '@codemirror/view';
 import { getCM, vim } from '@replit/codemirror-vim';
 import { editorTheme } from './editorTheme';
+import { focusPoint } from './focusPoint';
 import { livePreview } from './livePreview';
 import type { SpellingLanguage } from '../settings';
 import { setSpellingLanguages, spellChecking, spellingRecheck } from './spelling';
@@ -29,6 +24,7 @@ export interface EditorOptions {
     typewriterAnchor: number;
     /** How long typewriter scrolling glides to a new line, in milliseconds. */
     typewriterGlide: number;
+    /** Tracks the point the focus overlay centres on (`focusPoint`). */
     focusMode: boolean;
     spellcheck: boolean;
     spellingLanguages: readonly SpellingLanguage[];
@@ -40,6 +36,8 @@ export interface EditorCallbacks {
     onChange(): void;
     /** Vim mode name as the engine reports it: `normal`, `insert`, `visual`, `replace`. */
     onVimModeChange(mode: string): void;
+    /** Screen y the focus overlay centres on, reported while focus mode is on. */
+    onFocusPointMove(y: number): void;
 }
 
 /**
@@ -53,6 +51,7 @@ export class WritingEditor {
     private readonly vimMode = new Compartment();
     private readonly typewriter = new Compartment();
     private readonly attributes = new Compartment();
+    private readonly focusTracking = new Compartment();
     private readonly spelling = new Compartment();
     private options: EditorOptions;
     private kind: DocumentKind = 'markdown';
@@ -109,7 +108,7 @@ export class WritingEditor {
             effects.push(this.language.reconfigure(this.languageExtension()));
         }
         if (previous.focusMode !== options.focusMode) {
-            effects.push(this.attributes.reconfigure(this.attributeExtensions()));
+            effects.push(this.focusTracking.reconfigure(this.focusExtension()));
         }
         if (previous.spellcheck !== options.spellcheck) {
             effects.push(this.spelling.reconfigure(options.spellcheck ? spellChecking() : []));
@@ -144,14 +143,13 @@ export class WritingEditor {
                 history(),
                 drawSelection(),
                 dropCursor(),
-                // Marks the paragraph being written; focus mode dims the rest.
-                highlightActiveLine(),
                 EditorView.lineWrapping,
                 search({ top: false }),
                 keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
                 this.language.of(this.languageExtension()),
                 this.typewriter.of(this.typewriterExtension()),
                 this.attributes.of(this.attributeExtensions()),
+                this.focusTracking.of(this.focusExtension()),
                 this.spelling.of(this.options.spellcheck ? spellChecking() : []),
                 editorTheme(),
                 EditorView.updateListener.of((update) => {
@@ -183,9 +181,12 @@ export class WritingEditor {
             : [];
     }
 
+    private focusExtension(): Extension {
+        return this.options.focusMode ? focusPoint(this.callbacks.onFocusPointMove) : [];
+    }
+
     private attributeExtensions(): Extension {
         return [
-            EditorView.editorAttributes.of({ class: this.options.focusMode ? 'focus-mode' : '' }),
             EditorView.contentAttributes.of({
                 // Ernest checks spelling itself (`spelling.ts`); the native
                 // checker would underline the same words a second time.

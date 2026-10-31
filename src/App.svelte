@@ -6,6 +6,7 @@
     import { ask, open, save } from '@tauri-apps/plugin-dialog';
     import { backend } from './lib/backend';
     import DarkenOverlay from './lib/design-system/atoms/DarkenOverlay.svelte';
+    import SpotlightOverlay from './lib/design-system/atoms/SpotlightOverlay.svelte';
     import SettingsPanel from './lib/features/settings/organisms/SettingsPanel.svelte';
     import StatusLine from './lib/features/status/organisms/StatusLine.svelte';
     import { installVimExtensions } from './lib/editor/vim';
@@ -18,6 +19,7 @@
         antiGlareOpacity,
         clamp,
         defaultSettings,
+        focusOverlayOpacity,
         fontFamilyStack,
         limits,
         normalizeSettings,
@@ -59,6 +61,8 @@
     let vimMode = $state('');
     let message = $state('');
     let typing = $state(false);
+    /** Screen y the focus overlay centres on, reported by the editor. */
+    let focusPoint = $state(window.innerHeight / 2);
 
     const title = $derived(documentPath ? baseName(documentPath) : 'Untitled');
 
@@ -316,7 +320,11 @@
                     spellingLanguages: [...settings.spellingLanguages],
                     livePreview: settings.livePreview,
                 },
-                { onChange: handleChange, onVimModeChange: (mode) => (vimMode = mode) },
+                {
+                    onChange: handleChange,
+                    onVimModeChange: (mode) => (vimMode = mode),
+                    onFocusPointMove: (y) => (focusPoint = y),
+                },
             );
             if (settings.vim) vimMode = 'normal';
 
@@ -371,6 +379,11 @@
 
 <main class="h-full" bind:this={host}></main>
 
+<!-- Focus mode: fades the text away from the point being written, under the interface and click-through. -->
+{#if settings.focusMode}
+    <SpotlightOverlay centre={focusPoint} strength={focusOverlayOpacity} />
+{/if}
+
 <StatusLine {title} {dirty} {words} {vimMode} {message} hidden={typing && !message} />
 
 {#if settingsOpen}
@@ -383,5 +396,8 @@
     />
 {/if}
 
-<!-- Anti-glare: drawn over everything, the settings panel included, and click-through. -->
-<DarkenOverlay strength={antiGlareOpacity(settings.antiGlare)} />
+<!-- Anti-glare: drawn over everything, the settings panel included, and click-through.
+     Focus mode replaces it while on. -->
+{#if !settings.focusMode}
+    <DarkenOverlay strength={antiGlareOpacity(settings.antiGlare)} />
+{/if}

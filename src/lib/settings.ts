@@ -5,6 +5,7 @@ export interface Settings {
     /**
      * Strength of the anti-glare overlay over the whole window, in percent;
      * 0 is off. See `antiGlareOpacity` for how it maps to the overlay.
+     * Focus mode replaces it while on.
      */
     antiGlare: number;
     /** A system font family name; empty means the default monospace stack. */
@@ -90,6 +91,9 @@ export const limits = {
 export function antiGlareOpacity(strength: number): number {
     return (strength / 100) * 0.7;
 }
+
+/** Opacity of the focus mode fade where it is thickest. */
+export const focusOverlayOpacity = 0.4;
 
 /**
  * Builds valid settings from whatever was stored: unknown keys are dropped,

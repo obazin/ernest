@@ -58,6 +58,8 @@ The settings schema, defaults and validation live only in `src/lib/settings.ts`.
 
 `WritingEditor` (`src/lib/editor/writingEditor.ts`) wraps the `EditorView`. Everything that can change at runtime (Vim, typewriter scrolling, language with live preview, focus mode, spell checking) sits in its own `Compartment`, so toggling one reconfigures only that part and keeps undo history. Loading a document replaces the whole `EditorState` instead, which deliberately starts a fresh history.
 
+Focus mode is drawn outside CodeMirror. While it is on, the `focusPoint` plugin (`src/lib/editor/focusPoint.ts`) reports the screen y it centres on, the typewriter anchor or the cursor's line, through the `onFocusPointMove` callback whenever the cursor, text, layout or scroll position changes. `App.svelte` places a `SpotlightOverlay` there, above the editor and below the status line and settings panel.
+
 Extension order matters in one place: `vim()` comes first so it sees keys before any other keymap.
 
 Line endings: CodeMirror normalises to `\n` internally. When a loaded file contains `\r\n`, the state is created with `EditorState.lineSeparator.of('\r\n')` and the text is read back with `state.sliceDoc()`, which joins with that separator, so CRLF files round-trip unchanged.
