@@ -54,8 +54,10 @@ pub fn write_atomically_if(
     {
         return Err(Error::ReadOnly(absolute(path)));
     }
+    // Creating the temporary file fails on the folder (missing, or not
+    // writable), so the message names the folder.
     let (temporary, mut file) =
-        create_temporary(directory, &file_name).map_err(Error::io(&target))?;
+        create_temporary(directory, &file_name).map_err(Error::io(directory))?;
 
     let result = (|| {
         file.write_all(contents)?;
