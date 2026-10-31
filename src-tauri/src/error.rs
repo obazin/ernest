@@ -16,10 +16,8 @@ pub enum Error {
     ReadOnly(PathBuf),
     #[error("{0} is not a UTF-8 text file")]
     NotText(PathBuf),
-    #[error(
-        "{0}: only Markdown and text files open by name; choose others in the Open or Save dialog"
-    )]
-    NotPermitted(PathBuf),
+    #[error("{0}: not opened or saved, since you declined")]
+    Declined(PathBuf),
     #[error("settings: {0}")]
     Settings(#[from] serde_json::Error),
     #[error("no configuration directory: {0}")]

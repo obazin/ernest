@@ -9,25 +9,25 @@ The backend does only what the webview cannot: touch arbitrary files, enumerate 
 
 ## Owners
 
-| Concern                                                                           | Owner          |
-| --------------------------------------------------------------------------------- | -------------- |
-| Builder, plugins, managed state, `generate_handler!`, quit interception           | `lib.rs`       |
-| Which paths the webview may read and write (grants, text extensions)              | `access.rs`    |
-| Reading and writing documents, the file dialogs, the launch argument              | `documents.rs` |
-| Running slow synchronous work off the async workers (`on_blocking_pool`)          | `blocking.rs`  |
-| File-system primitives shared by several modules (`write_atomically`, `absolute`) | `files.rs`     |
-| System font families                                                              | `fonts.rs`     |
-| OS locale preferences                                                             | `locale.rs`    |
-| `settings.json` as opaque JSON: load and save only                                | `settings.rs`  |
-| Dictionaries, the personal word list, spelling commands                           | `spelling.rs`  |
-| The single serialisable error type                                                | `error.rs`     |
+| Concern                                                                                   | Owner          |
+| ----------------------------------------------------------------------------------------- | -------------- |
+| Builder, plugins, managed state, `generate_handler!`, quit interception                   | `lib.rs`       |
+| Which paths the webview may touch freely, and when the writer is asked (grants, concerns) | `access.rs`    |
+| Reading and writing documents, the file dialogs, the launch argument                      | `documents.rs` |
+| Running slow synchronous work off the async workers (`on_blocking_pool`)                  | `blocking.rs`  |
+| File-system primitives shared by several modules (`write_atomically`, `absolute`)         | `files.rs`     |
+| System font families                                                                      | `fonts.rs`     |
+| OS locale preferences                                                                     | `locale.rs`    |
+| `settings.json` as opaque JSON: load and save only                                        | `settings.rs`  |
+| Dictionaries, the personal word list, spelling commands                                   | `spelling.rs`  |
+| The single serialisable error type                                                        | `error.rs`     |
 
 ## Rules
 
 - **Domain modules do not import each other.** If `settings.rs` or `spelling.rs` needs something from `documents.rs`, that thing is not a document concern: move it to `files.rs` or a new module named for it. Domain modules may depend on `files.rs` and `error.rs`.
 - **A command lives in the module of its concern**, not the module of its first caller. `system_languages` feeds the settings defaults but is an OS query, so it lives in `locale.rs`.
 - **`settings.rs` stays schema-free.** It never names a setting; the schema, defaults and validation are in `src/lib/settings.ts`.
-- **Every document path from the webview passes `DocumentAccess::check`.** A new command that reads or writes a path the webview supplies checks it first; a path the writer picks in a backend dialog is granted. File dialogs run in the backend, never through the webview's dialog plugin.
+- **Every document path from the webview passes `DocumentAccess::check`.** A new command that reads or writes a path the webview supplies checks it first, with a confirmation callback (`ask_writer` in `documents.rs`) for paths `access.rs` raises a `Concern` about; never refuse by extension or folder, ask. A path the writer picks in a backend dialog is granted. File dialogs and confirmations run in the backend, never through the webview's dialog plugin, so the webview cannot answer them.
 - **Slow work goes through `on_blocking_pool`.** A command body that does file I/O, parses data, queries the OS or waits on a native dialog runs inside `blocking::on_blocking_pool`, never directly in the `async fn`. Use `app.state::<T>()` inside the closure, since `State<'_, T>` cannot move into it.
 - **`lib.rs` only assembles.** No command bodies or business logic there; it registers commands and state, and handles run events.
 - **New module, new header.** Start every module with a `//!` line saying what it owns, and list it in the module diagram in `docs/architecture.md` and the layout in `docs/development.md`.

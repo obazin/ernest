@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State, Window, Wry};
-use tauri_plugin_dialog::{DialogExt, FileDialogBuilder};
+use tauri_plugin_dialog::{DialogExt, FileDialogBuilder, MessageDialogButtons, MessageDialogKind};
 
-use crate::access::{DocumentAccess, TEXT_EXTENSIONS};
+use crate::access::{Concern, DocumentAccess, TEXT_EXTENSIONS};
 use crate::blocking::on_blocking_pool;
 use crate::error::{Error, Result};
 use crate::files::{absolute, write_atomically};
@@ -22,11 +22,14 @@ pub struct Document {
     pub exists: bool,
 }
 
-/// Reads a granted path or a text document by name (`access.rs`).
+/// Reads a granted path or a text document by name, asking the writer about
+/// anything else (`access.rs`).
 #[tauri::command]
-pub async fn read_document(app: AppHandle, path: PathBuf) -> Result<Document> {
+pub async fn read_document(app: AppHandle, window: Window, path: PathBuf) -> Result<Document> {
     on_blocking_pool(move || {
-        let target = app.state::<DocumentAccess>().check(&path)?;
+        let target = app
+            .state::<DocumentAccess>()
+            .check(&path, ask_writer(&app, &window, "open"))?;
         Ok(Document {
             // The name the writer used, so a symlink keeps its own title.
             path: absolute(&path),
@@ -36,11 +39,17 @@ pub async fn read_document(app: AppHandle, path: PathBuf) -> Result<Document> {
     .await?
 }
 
-/// Writes a granted path or a text document by name (`access.rs`), refusing
-/// text over the limit `read_document` enforces, so Ernest never saves a file
-/// it could not open again.
+/// Writes a granted path or a text document by name, asking the writer about
+/// anything else (`access.rs`), and refuses text over the limit
+/// `read_document` enforces, so Ernest never saves a file it could not open
+/// again.
 #[tauri::command]
-pub async fn write_document(app: AppHandle, path: PathBuf, text: String) -> Result<PathBuf> {
+pub async fn write_document(
+    app: AppHandle,
+    window: Window,
+    path: PathBuf,
+    text: String,
+) -> Result<PathBuf> {
     on_blocking_pool(move || {
         if text.len() as u64 > MAXIMUM_DOCUMENT_BYTES {
             return Err(Error::TooLarge {
@@ -48,7 +57,9 @@ pub async fn write_document(app: AppHandle, path: PathBuf, text: String) -> Resu
                 limit: MAXIMUM_DOCUMENT_BYTES,
             });
         }
-        let target = app.state::<DocumentAccess>().check(&path)?;
+        let target = app
+            .state::<DocumentAccess>()
+            .check(&path, ask_writer(&app, &window, "save"))?;
         write_atomically(&target, text.as_bytes())?;
         Ok(absolute(&path))
     })
@@ -86,8 +97,8 @@ pub async fn choose_document_to_open(app: AppHandle, window: Window) -> Result<O
 
 /// Asks the writer where to save and grants the answer. `current`, the
 /// document's path if it has one, only seeds the dialog's folder and name,
-/// and only when the webview may already write it: otherwise a compromised
-/// webview could offer `~/.zshrc` to a hasty Enter.
+/// and only when the webview may already write it without asking: otherwise
+/// a compromised webview could offer `~/.zshrc` to a hasty Enter.
 #[tauri::command]
 pub async fn choose_document_to_save(
     app: AppHandle,
@@ -97,7 +108,7 @@ pub async fn choose_document_to_save(
     on_blocking_pool(move || {
         let mut dialog = text_file_dialog(&app, &window);
         let access = app.state::<DocumentAccess>();
-        let current = current.filter(|path| access.check(path).is_ok());
+        let current = current.filter(|path| access.check(path, |_, _| false).is_ok());
         match current
             .as_deref()
             .map(|path| (path.parent(), path.file_name()))
@@ -115,6 +126,39 @@ pub async fn choose_document_to_save(
         grant_chosen(&app, chosen)
     })
     .await
+}
+
+/// A native confirmation for a path `access.rs` has a concern about. It is
+/// shown by the backend, so the webview can neither answer nor skip it.
+fn ask_writer<'context>(
+    app: &'context AppHandle,
+    window: &'context Window,
+    action: &'static str,
+) -> impl FnOnce(&Path, &Concern) -> bool + 'context {
+    move |path, concern| {
+        app.dialog()
+            .message(format!(
+                "Ernest was asked to {action} “{}”, which {}.\n\nAllow it only if you typed this path yourself.",
+                path.display(),
+                concern.describe()
+            ))
+            .title(format!("{} this file?", capitalised(action)))
+            .kind(MessageDialogKind::Warning)
+            .buttons(MessageDialogButtons::OkCancelCustom(
+                capitalised(action),
+                "Cancel".to_owned(),
+            ))
+            .parent(window)
+            .blocking_show()
+    }
+}
+
+fn capitalised(word: &str) -> String {
+    let mut characters = word.chars();
+    characters
+        .next()
+        .map(|first| first.to_uppercase().chain(characters).collect())
+        .unwrap_or_default()
 }
 
 fn text_file_dialog(app: &AppHandle, window: &Window) -> FileDialogBuilder<Wry> {
