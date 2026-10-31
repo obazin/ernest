@@ -1,4 +1,5 @@
-use std::fs;
+use std::fs::File;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -35,10 +36,18 @@ pub async fn read_document(app: AppHandle, path: PathBuf) -> Result<Document> {
     .await?
 }
 
-/// Writes a granted path or a text document by name (`access.rs`).
+/// Writes a granted path or a text document by name (`access.rs`), refusing
+/// text over the limit `read_document` enforces, so Ernest never saves a file
+/// it could not open again.
 #[tauri::command]
 pub async fn write_document(app: AppHandle, path: PathBuf, text: String) -> Result<PathBuf> {
     on_blocking_pool(move || {
+        if text.len() as u64 > MAXIMUM_DOCUMENT_BYTES {
+            return Err(Error::TooLarge {
+                path: absolute(&path),
+                limit: MAXIMUM_DOCUMENT_BYTES,
+            });
+        }
         let target = app.state::<DocumentAccess>().check(&path)?;
         write_atomically(&target, text.as_bytes())?;
         Ok(absolute(&path))
@@ -122,8 +131,30 @@ fn grant_chosen(app: &AppHandle, chosen: Option<PathBuf>) -> Option<PathBuf> {
     Some(path)
 }
 
+/// Far beyond any manuscript (a long novel is a few megabytes), and small
+/// enough that the editor stays responsive and the reply is not copied
+/// gigabytes at a time.
+pub const MAXIMUM_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024;
+
 pub fn read(path: &Path) -> Result<Document> {
-    let bytes = match fs::read(path) {
+    read_at_most(path, MAXIMUM_DOCUMENT_BYTES)
+}
+
+/// Reads at most `limit` bytes, refusing a longer file without loading the
+/// rest of it, even one that grows while it is read.
+fn read_at_most(path: &Path, limit: u64) -> Result<Document> {
+    let opened = File::open(path).and_then(|file| {
+        let mut bytes = Vec::new();
+        file.take(limit + 1).read_to_end(&mut bytes)?;
+        Ok(bytes)
+    });
+    let bytes = match opened {
+        Ok(bytes) if bytes.len() as u64 > limit => {
+            return Err(Error::TooLarge {
+                path: path.to_path_buf(),
+                limit,
+            });
+        }
         Ok(bytes) => bytes,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             return Ok(Document {
@@ -144,6 +175,8 @@ pub fn read(path: &Path) -> Result<Document> {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use super::*;
 
     #[test]
@@ -156,6 +189,19 @@ mod tests {
         assert!(!document.exists);
         assert_eq!(document.text, "");
         assert_eq!(document.path, path);
+    }
+
+    #[test]
+    fn reading_a_file_over_the_limit_is_refused() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("huge.md");
+        fs::write(&path, "0123456789!").unwrap();
+
+        assert_eq!(read_at_most(&path, 11).unwrap().text, "0123456789!");
+        assert!(matches!(
+            read_at_most(&path, 10),
+            Err(Error::TooLarge { limit: 10, .. })
+        ));
     }
 
     #[test]

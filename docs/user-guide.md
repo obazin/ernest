@@ -26,7 +26,7 @@ Ernest edits one document at a time.
 
 A new, unnamed document is treated as Markdown. Saving it under another extension switches the highlighting.
 
-Files are read and written as UTF-8. A file that is not valid UTF-8 is refused rather than corrupted. Windows (CRLF) line endings are preserved as they are.
+Files are read and written as UTF-8. A file that is not valid UTF-8 is refused rather than corrupted, and so is one larger than 16 MB, far beyond any manuscript; Ernest likewise refuses to save more than that. Windows (CRLF) line endings are preserved as they are.
 
 Saving is safe against crashes: the new text is written to a temporary file next to the original, flushed to disk, then renamed over it, so an interrupted save leaves the previous version intact. Saving through a symbolic link updates the target and keeps the link, and the file's permissions are kept. A file you may not write, such as one marked read-only or owned by another user, is not overwritten: saving it reports `… is read-only`, and Save As writes elsewhere.
 

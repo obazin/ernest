@@ -191,8 +191,10 @@ impl Speller {
     }
 }
 
+/// Compares bytes first: a character takes at most four, so a longer
+/// string is refused without walking it, however large it is.
 fn is_judged(word: &str) -> bool {
-    word.chars().count() <= MAXIMUM_WORD_LENGTH
+    word.len() <= MAXIMUM_WORD_LENGTH * 4 && word.chars().count() <= MAXIMUM_WORD_LENGTH
 }
 
 /// A personal entry is one word. `/` would start Hunspell affix flags.
@@ -388,6 +390,13 @@ mod tests {
         speller.add("flagged/G").unwrap();
         speller.add(&"a".repeat(MAXIMUM_WORD_LENGTH + 1)).unwrap();
         assert!(!directory.path().join("dictionary.txt").exists());
+    }
+
+    #[test]
+    fn judges_length_in_characters_and_refuses_huge_strings_by_bytes() {
+        assert!(is_judged(&"é".repeat(MAXIMUM_WORD_LENGTH)));
+        assert!(!is_judged(&"é".repeat(MAXIMUM_WORD_LENGTH + 1)));
+        assert!(!is_judged(&"a".repeat(1 << 20)));
     }
 
     #[test]
