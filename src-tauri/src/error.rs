@@ -10,6 +10,8 @@ pub enum Error {
         #[source]
         source: std::io::Error,
     },
+    #[error("{0} is read-only")]
+    ReadOnly(PathBuf),
     #[error("{0} is not a UTF-8 text file")]
     NotText(PathBuf),
     #[error(

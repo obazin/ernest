@@ -13,7 +13,10 @@ use crate::error::{Error, Result};
 /// than a truncated file. Symlinks are resolved first so the link itself
 /// survives, and the original permissions are carried over. Every write has
 /// its own temporary file, so two writes to one path at once (autosave
-/// racing `:w`) each rename a complete file and the last one wins.
+/// racing `:w`) each rename a complete file and the last one wins. A file
+/// the writer may not write is refused before anything is created: Windows
+/// cannot rename over a read-only file, and on Unix the rename would
+/// otherwise replace a file the writer does not own.
 pub fn write_atomically(path: &Path, contents: &[u8]) -> Result<()> {
     let target = fs::canonicalize(path).unwrap_or_else(|_| absolute(path));
     let directory = target.parent().unwrap_or(Path::new("."));
@@ -21,13 +24,22 @@ pub fn write_atomically(path: &Path, contents: &[u8]) -> Result<()> {
         .file_name()
         .map(|name| name.to_string_lossy().into_owned())
         .unwrap_or_default();
+    let existing = fs::metadata(&target).ok();
+    // Opening for writing, without truncating, answers for the read-only
+    // attribute, Unix ownership and modes, ACLs and macOS locks alike.
+    if existing.is_some()
+        && let Err(error) = OpenOptions::new().write(true).open(&target)
+        && error.kind() == ErrorKind::PermissionDenied
+    {
+        return Err(Error::ReadOnly(absolute(path)));
+    }
     let (temporary, mut file) =
         create_temporary(directory, &file_name).map_err(Error::io(&target))?;
 
     let result = (|| {
         file.write_all(contents)?;
         file.sync_all()?;
-        if let Ok(metadata) = fs::metadata(&target) {
+        if let Some(metadata) = &existing {
             fs::set_permissions(&temporary, metadata.permissions())?;
         }
         drop(file);
@@ -91,6 +103,23 @@ mod tests {
         write_atomically(&path, b"short").unwrap();
 
         assert_eq!(fs::read_to_string(&path).unwrap(), "short");
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn refuses_a_read_only_file_and_leaves_nothing_behind() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("locked.md");
+        fs::write(&path, "kept").unwrap();
+        let mut permissions = fs::metadata(&path).unwrap().permissions();
+        permissions.set_readonly(true);
+        fs::set_permissions(&path, permissions).unwrap();
+
+        assert!(matches!(
+            write_atomically(&path, b"lost"),
+            Err(Error::ReadOnly(_))
+        ));
+        assert_eq!(fs::read_to_string(&path).unwrap(), "kept");
         assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
     }
 

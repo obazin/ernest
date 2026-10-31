@@ -28,7 +28,7 @@ A new, unnamed document is treated as Markdown. Saving it under another extensio
 
 Files are read and written as UTF-8. A file that is not valid UTF-8 is refused rather than corrupted. Windows (CRLF) line endings are preserved as they are.
 
-Saving is safe against crashes: the new text is written to a temporary file next to the original, flushed to disk, then renamed over it, so an interrupted save leaves the previous version intact. Saving through a symbolic link updates the target and keeps the link, and the file's permissions are kept.
+Saving is safe against crashes: the new text is written to a temporary file next to the original, flushed to disk, then renamed over it, so an interrupted save leaves the previous version intact. Saving through a symbolic link updates the target and keeps the link, and the file's permissions are kept. A file you may not write, such as one marked read-only or owned by another user, is not overwritten: saving it reports `… is read-only`, and Save As writes elsewhere.
 
 A path typed after `:e`, `:w` or `:sav` must name a Markdown or text file (`.md`, `.markdown`, `.mdown`, `.mkd`, `.txt`, `.text`) on a local disk and outside hidden folders such as `~/.config`; any other file opens and saves through Mod+O and Mod+Shift+S, or from the command line. This keeps Ernest's file access to what you write in, even if the interface were compromised.
 
