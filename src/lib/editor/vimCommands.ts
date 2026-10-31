@@ -6,14 +6,19 @@ import { Vim } from '@replit/codemirror-vim';
  * the application installed last.
  */
 export interface VimCommandHandlers {
-    /** `:w [path]`, `:sav path`. Resolves to false if the write did not happen. */
-    write(path: string | undefined, saveAs: boolean): Promise<boolean>;
+    /**
+     * `:w [path]`, `:sav path`; `force` (`:w!`) overwrites a file changed on
+     * disk without asking. Resolves to false if the write did not happen.
+     */
+    write(path: string | undefined, saveAs: boolean, force: boolean): Promise<boolean>;
     /** `:e [path]`, `:e!` — no path re-reads the current file. */
     edit(path: string | undefined, force: boolean): Promise<void>;
     /** `:enew` */
     newDocument(force: boolean): Promise<void>;
     /** `:q`, `:q!` */
     quit(force: boolean): Promise<void>;
+    /** Whether the document has unsaved changes, for `:x`. */
+    isModified(): boolean;
     /** `:colo name` — no name lists the available schemes. */
     colorscheme(name: string | undefined): void;
     /** Shows a one-line message in the Vim prompt area. */
@@ -47,25 +52,26 @@ export function installVimCommands(next: VimCommandHandlers) {
     };
 
     Vim.defineEx('write', 'w', (_, parameters) => {
-        const { argument } = parseExArguments(parameters.argString);
-        run((current) => current.write(argument, false));
+        const { force, argument } = parseExArguments(parameters.argString);
+        run((current) => current.write(argument, false, force));
     });
     Vim.defineEx('saveas', 'sav', (_, parameters) => {
-        const { argument } = parseExArguments(parameters.argString);
-        run((current) => current.write(argument, true));
+        const { force, argument } = parseExArguments(parameters.argString);
+        run((current) => current.write(argument, true, force));
     });
     Vim.defineEx('wq', 'wq', (_, parameters) => {
-        const { argument } = parseExArguments(parameters.argString);
+        const { force, argument } = parseExArguments(parameters.argString);
         run(async (current) => {
-            if (await current.write(argument, false)) await current.quit(true);
+            if (await current.write(argument, false, force)) await current.quit(true);
         });
     });
-    // `:x` only writes when there is something to write; the write handler
-    // already skips clean documents, so it behaves like `:wq` here.
+    // `:x` writes only when there is something to write, then quits.
     Vim.defineEx('xit', 'x', (_, parameters) => {
-        const { argument } = parseExArguments(parameters.argString);
+        const { force, argument } = parseExArguments(parameters.argString);
         run(async (current) => {
-            if (await current.write(argument, false)) await current.quit(true);
+            if (!current.isModified() || (await current.write(argument, false, force))) {
+                await current.quit(true);
+            }
         });
     });
     Vim.defineEx('quit', 'q', (_, parameters) => {

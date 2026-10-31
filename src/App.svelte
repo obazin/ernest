@@ -23,6 +23,7 @@
         normalizeSettings,
         type Settings,
     } from './lib/settings';
+    import { createSerialQueue } from './lib/serialQueue';
     import { applyPalette, findPalette, palettes } from './lib/themes/palettes';
     import { countWords } from './lib/wordCount';
 
@@ -46,9 +47,15 @@
     let editor = $state.raw<WritingEditor>();
 
     let documentPath = $state<string>();
+    /** The stamp of what the file held when the document was read or last written. */
+    let diskStamp: string | undefined;
+    /** Set when autosave found the file changed on disk; a write or reload clears it. */
+    let autosavePaused = false;
     let dirty = $state(false);
     /** Bumped on every edit, so a write that raced with typing does not mark the document clean. */
     let changeGeneration = 0;
+    /** Bumped on every load, so a write that finishes after another document was opened leaves it alone. */
+    let loadGeneration = 0;
     let closing = false;
 
     let words = $state(0);
@@ -107,6 +114,8 @@
     });
 
     let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
+    /** Writes run one at a time, each waiting for the one before. */
+    const queueWrite = createSerialQueue();
     let wordCountTimer: ReturnType<typeof setTimeout> | undefined;
     let typingTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -115,10 +124,10 @@
         dirty = true;
         clearTimeout(wordCountTimer);
         wordCountTimer = setTimeout(() => (words = countWords(editor?.text() ?? '')), 250);
-        if (settings.autosave && documentPath) {
+        if (settings.autosave && documentPath && !autosavePaused) {
             clearTimeout(autosaveTimer);
             autosaveTimer = setTimeout(() => {
-                if (dirty) write(undefined, false, { quiet: true });
+                if (dirty) write(undefined, false, { quiet: true }).catch(report);
             }, 1500);
         }
     }
@@ -139,8 +148,11 @@
         });
     }
 
-    function loadDocument(text: string, path: string | undefined) {
+    function loadDocument(text: string, path: string | undefined, stamp?: string) {
+        loadGeneration += 1;
         documentPath = path;
+        diskStamp = stamp;
+        autosavePaused = false;
         editor?.load(text, documentKindForPath(path));
         changeGeneration += 1;
         dirty = false;
@@ -155,7 +167,7 @@
             : await backend.chooseDocumentToOpen();
         if (!target) return;
         const file = await backend.readDocument(target);
-        loadDocument(file.text, file.path);
+        loadDocument(file.text, file.path, file.stamp);
         if (!file.exists) notify(`“${baseName(file.path)}” [New]`);
     }
 
@@ -167,14 +179,29 @@
     /**
      * `path` given while the document already has a name writes a copy and
      * leaves the document as it is (`:w other.md`); `saveAs` renames it
-     * (`:sav`, Shift+Mod+S). Resolves to false when nothing was written.
+     * (`:sav`, Shift+Mod+S). Saving the document over its own file checks
+     * that no other application changed the file since it was read: `force`
+     * (`:w!`) overwrites anyway, `quiet` (autosave) stops and says so, and
+     * otherwise the writer is asked. Writes run one at a time, so a save and
+     * an autosave never both check the stamp the other is about to replace.
+     * Resolves to false when nothing was written.
      */
-    async function write(
+    function write(
         path: string | undefined,
         saveAs: boolean,
-        { quiet = false } = {},
+        options: { quiet?: boolean; force?: boolean } = {},
     ): Promise<boolean> {
-        if (!editor) return false;
+        if (!options.quiet) clearTimeout(autosaveTimer);
+        return queueWrite(() => writeNow(path, saveAs, options));
+    }
+
+    async function writeNow(
+        path: string | undefined,
+        saveAs: boolean,
+        { quiet = false, force = false },
+    ): Promise<boolean> {
+        if (!editor || (quiet && autosavePaused)) return false;
+        const loaded = loadGeneration;
         const writesCopy = path !== undefined && documentPath !== undefined && !saveAs;
         let target: string | null | undefined = path
             ? await resolvePath(path, documentPath)
@@ -186,7 +213,39 @@
 
         const generation = changeGeneration;
         const previousKind = documentKindForPath(documentPath);
-        const written = await backend.writeDocument(target, editor.text());
+        const text = editor.text();
+        const overOwnFile = target === documentPath;
+        const expected = overOwnFile && !force ? diskStamp : undefined;
+        let saved = await backend.writeDocument(target, text, expected);
+        if (saved.outcome === 'changedOnDisk') {
+            const name = baseName(target);
+            if (quiet) {
+                autosavePaused = true;
+                const hint = settings.vim ? ':w! overwrites, :e! reloads' : 'save to choose';
+                notify(`“${name}” changed on disk; autosave paused. ${hint}`);
+                return false;
+            }
+            const overwrite = await ask(
+                `“${name}” was changed by another application since Ernest read it. Overwrite it with your version?`,
+                {
+                    title: 'File changed on disk',
+                    kind: 'warning',
+                    okLabel: 'Overwrite',
+                    cancelLabel: 'Cancel',
+                },
+            );
+            if (!overwrite) return false;
+            saved = await backend.writeDocument(target, text, undefined);
+        }
+        if (saved.outcome !== 'written') return false;
+        const written = saved.path;
+        // Another document was opened meanwhile: the write happened, but the
+        // state below now describes that other document.
+        if (loadGeneration !== loaded) return true;
+        if (overOwnFile || !writesCopy) {
+            diskStamp = saved.stamp;
+            autosavePaused = false;
+        }
         if (!writesCopy) {
             documentPath = written;
             dirty = changeGeneration !== generation;
@@ -292,13 +351,14 @@
 
             installVimExtensions();
             installVimCommands({
-                write: (path, saveAs) => write(path, saveAs),
+                write: (path, saveAs, force) => write(path, saveAs, { force }),
                 // Bare `:e` re-reads the current file (`:e!` reverts it); only an
                 // unnamed document falls through to the file picker.
                 edit: (path, force) =>
                     openDocument(path ?? documentPath, force ? 'force' : 'refuse'),
                 newDocument: (force) => newDocument(force ? 'force' : 'refuse'),
                 quit: (force) => quit(force ? 'force' : 'refuse'),
+                isModified: () => dirty,
                 colorscheme: (name) => {
                     if (!name) return notify(`colorscheme ${settings.theme}`);
                     const palette = palettes.find((candidate) => candidate.identifier === name);

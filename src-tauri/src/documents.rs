@@ -9,7 +9,7 @@ use tauri_plugin_dialog::{DialogExt, FileDialogBuilder, MessageDialogButtons, Me
 use crate::access::{Concern, DocumentAccess, TEXT_EXTENSIONS};
 use crate::blocking::on_blocking_pool;
 use crate::error::{Error, Result};
-use crate::files::{absolute, write_atomically};
+use crate::files::{ABSENT, absolute, content_stamp, current_content_stamp, write_atomically_if};
 
 #[derive(Debug, Serialize)]
 pub struct Document {
@@ -20,6 +20,20 @@ pub struct Document {
     /// False when the path names a file that does not exist yet: the writer
     /// gets an empty document under that name, created on first write.
     pub exists: bool,
+    /// What was read (`files::content_stamp`, or `ABSENT` for a new file),
+    /// handed back on save so a file changed by another application is not
+    /// overwritten unseen.
+    pub stamp: String,
+}
+
+/// What became of a save.
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[serde(tag = "outcome", rename_all = "camelCase")]
+pub enum Saved {
+    /// Written at `path` (absolute), which now holds the text stamped `stamp`.
+    Written { path: PathBuf, stamp: String },
+    /// Not written: the file no longer holds what the writer read.
+    ChangedOnDisk,
 }
 
 /// Reads a granted path or a text document by name, asking the writer about
@@ -42,14 +56,17 @@ pub async fn read_document(app: AppHandle, window: Window, path: PathBuf) -> Res
 /// Writes a granted path or a text document by name, asking the writer about
 /// anything else (`access.rs`), and refuses text over the limit
 /// `read_document` enforces, so Ernest never saves a file it could not open
-/// again.
+/// again. With `expected`, the stamp of what the document was read or last
+/// saved as, a file another application has changed since is left alone and
+/// `ChangedOnDisk` comes back instead; without it, the file is overwritten.
 #[tauri::command]
 pub async fn write_document(
     app: AppHandle,
     window: Window,
     path: PathBuf,
     text: String,
-) -> Result<PathBuf> {
+    expected: Option<String>,
+) -> Result<Saved> {
     on_blocking_pool(move || {
         if text.len() as u64 > MAXIMUM_DOCUMENT_BYTES {
             return Err(Error::TooLarge {
@@ -60,10 +77,31 @@ pub async fn write_document(
         let target = app
             .state::<DocumentAccess>()
             .check(&path, ask_writer(&app, &window, "save"))?;
-        write_atomically(&target, text.as_bytes())?;
-        Ok(absolute(&path))
+        save(&target, &absolute(&path), &text, expected.as_deref())
     })
     .await?
+}
+
+/// Writes `text` to `target` unless the file there no longer holds what was
+/// stamped `expected`. The check runs just before the rename that replaces
+/// the file, so another application's save can slip in only between
+/// re-reading the file and the rename. A file that appeared since an absent
+/// one was read counts as changed; a file that has disappeared is simply
+/// written again. `path` is the name the writer used, reported back as
+/// written.
+fn save(target: &Path, path: &Path, text: &str, expected: Option<&str>) -> Result<Saved> {
+    let unchanged = |target: &Path| match expected {
+        None => Ok(true),
+        Some(expected) => current_content_stamp(target, MAXIMUM_DOCUMENT_BYTES)
+            .map(|current| current == expected || current == ABSENT),
+    };
+    if !write_atomically_if(target, text.as_bytes(), unchanged)? {
+        return Ok(Saved::ChangedOnDisk);
+    }
+    Ok(Saved::Written {
+        path: path.to_path_buf(),
+        stamp: content_stamp(text.as_bytes()),
+    })
 }
 
 /// The file named on the command line (`ernest notes.md`), if any, granted
@@ -205,15 +243,18 @@ fn read_at_most(path: &Path, limit: u64) -> Result<Document> {
                 path: absolute(path),
                 text: String::new(),
                 exists: false,
+                stamp: ABSENT.to_owned(),
             });
         }
         Err(error) => return Err(Error::io(path)(error)),
     };
+    let stamp = content_stamp(&bytes);
     let text = String::from_utf8(bytes).map_err(|_| Error::NotText(path.to_path_buf()))?;
     Ok(Document {
         path: absolute(path),
         text,
         exists: true,
+        stamp,
     })
 }
 
@@ -246,6 +287,122 @@ mod tests {
             read_at_most(&path, 10),
             Err(Error::TooLarge { limit: 10, .. })
         ));
+    }
+
+    /// Saves `text` over `path` as the editor would, expecting `expected`.
+    fn save_over(path: &Path, text: &str, expected: &str) -> Saved {
+        save(path, path, text, Some(expected)).unwrap()
+    }
+
+    #[test]
+    fn saves_in_a_row_each_expect_what_the_last_one_wrote() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("chapter.md");
+        fs::write(&path, "draft").unwrap();
+        let mut stamp = read(&path).unwrap().stamp;
+
+        for text in ["revised", "revised again", "final"] {
+            let Saved::Written { stamp: written, .. } = save_over(&path, text, &stamp) else {
+                panic!("{text} was refused");
+            };
+            stamp = written;
+        }
+
+        assert_eq!(fs::read_to_string(&path).unwrap(), "final");
+    }
+
+    #[test]
+    fn leaves_alone_a_file_changed_since_it_was_read_even_at_the_same_length() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("chapter.md");
+        fs::write(&path, "draft one").unwrap();
+        let stamp = read(&path).unwrap().stamp;
+        fs::write(&path, "draft two").unwrap();
+
+        assert_eq!(save_over(&path, "mine", &stamp), Saved::ChangedOnDisk);
+        assert_eq!(fs::read_to_string(&path).unwrap(), "draft two");
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn a_file_rewritten_with_the_same_text_is_not_a_change() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("chapter.md");
+        fs::write(&path, "draft").unwrap();
+        let stamp = read(&path).unwrap().stamp;
+        fs::write(&path, "draft").unwrap();
+
+        assert!(matches!(
+            save_over(&path, "mine", &stamp),
+            Saved::Written { .. }
+        ));
+    }
+
+    #[test]
+    fn saving_without_an_expected_stamp_overwrites() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("chapter.md");
+        fs::write(&path, "theirs").unwrap();
+
+        save(&path, &path, "mine", None).unwrap();
+
+        assert_eq!(fs::read_to_string(&path).unwrap(), "mine");
+    }
+
+    #[test]
+    fn a_new_file_created_elsewhere_before_the_first_save_is_left_alone() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("new.md");
+        let stamp = read(&path).unwrap().stamp;
+        fs::write(&path, "theirs").unwrap();
+
+        assert_eq!(save_over(&path, "mine", &stamp), Saved::ChangedOnDisk);
+        assert_eq!(fs::read_to_string(&path).unwrap(), "theirs");
+    }
+
+    #[test]
+    fn a_file_deleted_since_it_was_read_is_written_again() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("chapter.md");
+        fs::write(&path, "draft").unwrap();
+        let stamp = read(&path).unwrap().stamp;
+        fs::remove_file(&path).unwrap();
+
+        assert!(matches!(
+            save_over(&path, "mine", &stamp),
+            Saved::Written { .. }
+        ));
+        assert_eq!(fs::read_to_string(&path).unwrap(), "mine");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_file_that_cannot_be_read_back_is_an_error_not_a_change() {
+        use std::os::unix::fs::PermissionsExt;
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("chapter.md");
+        fs::write(&path, "draft").unwrap();
+        let stamp = read(&path).unwrap().stamp;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o200)).unwrap();
+
+        assert!(save(&path, &path, "mine", Some(&stamp)).is_err());
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn a_save_outcome_crosses_to_the_webview_tagged() {
+        let written = Saved::Written {
+            path: PathBuf::from("/notes.md"),
+            stamp: "stamp".to_owned(),
+        };
+        assert_eq!(
+            serde_json::to_value(written).unwrap(),
+            serde_json::json!({ "outcome": "written", "path": "/notes.md", "stamp": "stamp" })
+        );
+        assert_eq!(
+            serde_json::to_value(Saved::ChangedOnDisk).unwrap(),
+            serde_json::json!({ "outcome": "changedOnDisk" })
+        );
     }
 
     #[test]

@@ -16,6 +16,7 @@ paths:
 | Document paths: names, resolving typed paths, path → kind                        | `src/lib/documents.ts`                                      |
 | Languages with a dictionary (mirrors `Language` in `spelling.rs`)                | `src/lib/spellingLanguages.ts`                              |
 | Calling Rust (`invoke`)                                                          | `src/lib/backend.ts` only                                   |
+| Running asynchronous tasks one at a time (saves)                                 | `src/lib/serialQueue.ts`                                    |
 | Build-time tuning values                                                         | `src/lib/config.ts`                                         |
 | CodeMirror view, compartments, `EditorOptions`                                   | `src/lib/editor/writingEditor.ts`                           |
 | Spell checking in the editor, including every spelling IPC call and the cache    | `src/lib/editor/spelling.ts`                                |
@@ -29,7 +30,7 @@ App.svelte
   → features/  → design-system/
   → editor/    → editor/vim/
   → settings.ts → owners of each value (palettes, spellingLanguages, vim/escapeSequence)
-  → appearance.ts, documents.ts, backend.ts, spellingLanguages.ts, themes/
+  → appearance.ts, documents.ts, backend.ts, serialQueue.ts, spellingLanguages.ts, themes/
 ```
 
 - `editor/` never imports `settings.ts` or the `Settings` type. It takes `EditorOptions` and plain values; `App.svelte` maps `Settings` onto them in `editorOptions()` and onto the Vim setters (`setClipboardSharing`, `applyEscapeSequence`, `applyMappings`).

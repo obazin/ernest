@@ -28,6 +28,8 @@ A new, unnamed document is treated as Markdown. Saving it under another extensio
 
 Files are read and written as UTF-8. A file that is not valid UTF-8 is refused rather than corrupted, and so is one larger than 16 MB, far beyond any manuscript; Ernest likewise refuses to save more than that. Windows (CRLF) line endings are preserved as they are.
 
+Before saving over the document's file, Ernest checks that it still holds what Ernest opened or last saved. If another application changed it, or created it after you opened a new name, saving asks whether to overwrite it with your version; `:w!` overwrites without asking, and `:e!` reloads the file instead. Autosave never overwrites such a file: it pauses with a message until you save or reload.
+
 Saving is safe against crashes: the new text is written to a temporary file next to the original, flushed to disk, then renamed over it, so an interrupted save leaves the previous version intact. Saving through a symbolic link updates the target and keeps the link, and the file's permissions are kept. A file you may not write, such as one marked read-only or owned by another user, is not overwritten: saving it reports `… is read-only`, and Save As writes elsewhere.
 
 Paths typed after `:e`, `:w` or `:sav` work in any folder. When one is not a Markdown or text file (`.md`, `.markdown`, `.mdown`, `.mkd`, `.txt`, `.text`), points through a link to a file that is not, names a system device or lies on another computer, Ernest asks before opening or saving it; once allowed, it is not asked about again until Ernest quits. Files chosen with Mod+O, Mod+Shift+S or on the command line never ask. The question comes from Ernest itself rather than its interface, so nothing can answer it for you.
@@ -48,7 +50,7 @@ Closing the window, quitting, opening another file or starting a new one with un
 
 ### Autosave
 
-With Settings → Autosave on, a document that has a file name is saved 1.5 seconds after you stop typing. Untitled documents are never autosaved.
+With Settings → Autosave on, a document that has a file name is saved 1.5 seconds after you stop typing. Untitled documents are never autosaved. If another application changed the file, autosave pauses with a message instead of overwriting it, until you save or reload (see [Files](#files)).
 
 ## Vim mode
 
@@ -111,8 +113,9 @@ The commands are `map`, `nmap`, `vmap` (or `xmap`), `imap`, `omap` and their `no
 | ----------------- | ----------------------------------------------------------------------------------------------------------- |
 | `:w`              | Save. An untitled document asks for a location.                                                             |
 | `:w path`         | Write a copy to `path`; the current document keeps its name. An untitled document takes `path` as its name. |
+| `:w!`             | Save, overwriting the file even if another application changed it since Ernest read it.                     |
 | `:sav path`       | Save under `path` and continue editing that file.                                                           |
-| `:wq`, `:x`       | Save and close.                                                                                             |
+| `:wq`, `:x`       | Save and close; `:x` skips the save when there is nothing to save. `:wq!` and `:x!` save like `:w!`.        |
 | `:q`              | Close, refusing if there are unsaved changes.                                                               |
 | `:q!`             | Close and discard unsaved changes.                                                                          |
 | `:e path`         | Open `path`, refusing if there are unsaved changes.                                                         |

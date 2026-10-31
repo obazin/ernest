@@ -60,6 +60,7 @@ src/app.css                      Tailwind entry: design tokens (@theme), base st
 src/lib/appearance.ts            typography custom properties, font stacks, overlay strengths
 src/lib/backend.ts               typed wrappers over the Rust commands
 src/lib/documents.ts             document paths: names, resolution, kind
+src/lib/serialQueue.ts           one-at-a-time task queue for saves
 src/lib/settings.ts              settings schema, defaults, validation
 src/lib/spellingLanguages.ts     the languages with a dictionary
 src/lib/wordCount.ts             word counting
