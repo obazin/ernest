@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State, Window, Wry};
-use tauri_plugin_dialog::{DialogExt, FileDialogBuilder, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_dialog::{
+    DialogExt, FileDialogBuilder, MessageDialogButtons, MessageDialogKind, MessageDialogResult,
+};
 
 use crate::access::{Concern, DocumentAccess, TEXT_EXTENSIONS};
 use crate::blocking::on_blocking_pool;
@@ -168,26 +170,36 @@ pub async fn choose_document_to_save(
 
 /// A native confirmation for a path `access.rs` has a concern about. It is
 /// shown by the backend, so the webview can neither answer nor skip it.
+///
+/// Only a click on the action's own button allows. The dialog plugin maps
+/// Escape, closing the dialog or a dialog that failed to show to the last
+/// button's label, and Return presses (or, on Linux, starts focused on) the
+/// first, so the action goes in the middle, where neither can reach it:
+/// "Don't Open", "Open", "Cancel".
 fn ask_writer<'context>(
     app: &'context AppHandle,
     window: &'context Window,
     action: &'static str,
 ) -> impl FnOnce(&Path, &Concern) -> bool + 'context {
     move |path, concern| {
+        let allow = capitalised(action);
+        let buttons = MessageDialogButtons::YesNoCancelCustom(
+            format!("Don't {allow}"),
+            allow.clone(),
+            "Cancel".to_owned(),
+        );
         app.dialog()
             .message(format!(
                 "Ernest was asked to {action} “{}”, which {}.\n\nAllow it only if you typed this path yourself.",
                 path.display(),
                 concern.describe()
             ))
-            .title(format!("{} this file?", capitalised(action)))
+            .title(format!("{allow} this file?"))
             .kind(MessageDialogKind::Warning)
-            .buttons(MessageDialogButtons::OkCancelCustom(
-                capitalised(action),
-                "Cancel".to_owned(),
-            ))
+            .buttons(buttons)
             .parent(window)
-            .blocking_show()
+            .blocking_show_with_result()
+            == MessageDialogResult::Custom(allow)
     }
 }
 

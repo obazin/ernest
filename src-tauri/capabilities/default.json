@@ -1,7 +1,7 @@
 {
     "$schema": "../gen/schemas/desktop-schema.json",
     "identifier": "default",
-    "description": "Main window. Dialog access is limited to the unsaved-changes prompt and messages (the file pickers run in the backend, which grants what the writer chooses); window access to what the zen chrome needs (show on ready, drag region on the macOS overlay title bar, full screen, title, close); clipboard access to plain text, for the Vim registers.",
+    "description": "Main window. Dialog access is limited to the unsaved-changes and changed-on-disk prompts (the file pickers run in the backend, which grants what the writer chooses); window access to what the zen chrome needs (show on ready, drag region on the macOS overlay title bar, full screen, title, close); clipboard access to plain text, for the Vim registers.",
     "windows": ["main"],
     "permissions": [
         "core:default",
@@ -13,7 +13,6 @@
         "core:window:allow-set-title",
         "core:window:allow-close",
         "core:window:allow-destroy",
-        "dialog:allow-ask",
         "dialog:allow-message",
         "clipboard-manager:allow-read-text",
         "clipboard-manager:allow-write-text"

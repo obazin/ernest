@@ -2,7 +2,7 @@
     import { onMount } from 'svelte';
     import { listen } from '@tauri-apps/api/event';
     import { getCurrentWindow } from '@tauri-apps/api/window';
-    import { ask } from '@tauri-apps/plugin-dialog';
+    import { message as showMessage } from '@tauri-apps/plugin-dialog';
     import { antiGlareOpacity, applyTypography, focusOverlayOpacity } from './lib/appearance';
     import { backend } from './lib/backend';
     import DarkenOverlay from './lib/design-system/atoms/DarkenOverlay.svelte';
@@ -28,9 +28,9 @@
     import { countWords } from './lib/wordCount';
 
     /**
-     * What to do when an action would throw away unsaved changes: `ask` shows
-     * a dialog (menus, shortcuts, window close), `refuse` answers like Vim
-     * does without a bang (`E37`), `force` discards (`:q!`, `:e!`).
+     * What to do when an action would throw away unsaved changes: `ask` offers
+     * to save them first (menus, shortcuts, window close), `refuse` answers
+     * like Vim does without a bang (`E37`), `force` discards (`:q!`, `:e!`).
      */
     type DiscardPolicy = 'ask' | 'refuse' | 'force';
 
@@ -57,6 +57,8 @@
     /** Bumped on every load, so a write that finishes after another document was opened leaves it alone. */
     let loadGeneration = 0;
     let closing = false;
+    /** Set while the unsaved-changes dialog is showing. */
+    let askingToSave = false;
 
     let words = $state(0);
     let vimMode = $state('');
@@ -140,12 +142,31 @@
             notify('E37: No write since last change (add ! to override)');
             return false;
         }
-        return ask(`“${title}” has unsaved changes. Discard them?`, {
-            title: 'Unsaved changes',
-            kind: 'warning',
-            okLabel: 'Discard',
-            cancelLabel: 'Keep editing',
-        });
+        // A second request while the dialog shows (Cmd+Q pressed twice) is
+        // turned down rather than stacking another dialog.
+        if (askingToSave) return false;
+        askingToSave = true;
+        try {
+            // Save comes first, so Return keeps the work; macOS gives Escape to
+            // Cancel and Cmd+D to Don't Save, and closing the dialog cancels
+            // on every platform.
+            const answer = await showMessage(`Do you want to save the changes to “${title}”?`, {
+                title: 'Unsaved changes',
+                kind: 'warning',
+                buttons: { yes: 'Save', no: "Don't Save", cancel: 'Cancel' },
+            });
+            if (answer === "Don't Save") return true;
+            if (answer !== 'Save') return false;
+            try {
+                return await write(undefined, false);
+            } catch (error) {
+                // Shown here: the window close path would otherwise swallow it.
+                report(error);
+                return false;
+            }
+        } finally {
+            askingToSave = false;
+        }
     }
 
     function loadDocument(text: string, path: string | undefined, stamp?: string) {
@@ -225,16 +246,17 @@
                 notify(`“${name}” changed on disk; autosave paused. ${hint}`);
                 return false;
             }
-            const overwrite = await ask(
+            // Only the middle button overwrites: Return presses the first,
+            // and Escape or closing the dialog answers the last.
+            const answer = await showMessage(
                 `“${name}” was changed by another application since Ernest read it. Overwrite it with your version?`,
                 {
                     title: 'File changed on disk',
                     kind: 'warning',
-                    okLabel: 'Overwrite',
-                    cancelLabel: 'Cancel',
+                    buttons: { yes: "Don't Overwrite", no: 'Overwrite', cancel: 'Cancel' },
                 },
             );
-            if (!overwrite) return false;
+            if (answer !== 'Overwrite') return false;
             saved = await backend.writeDocument(target, text, undefined);
         }
         if (saved.outcome !== 'written') return false;

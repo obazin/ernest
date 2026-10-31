@@ -28,11 +28,11 @@ A new, unnamed document is treated as Markdown. Saving it under another extensio
 
 Files are read and written as UTF-8. A file that is not valid UTF-8 is refused rather than corrupted, and so is one larger than 16 MB, far beyond any manuscript; Ernest likewise refuses to save more than that. Windows (CRLF) line endings are preserved as they are.
 
-Before saving over the document's file, Ernest checks that it still holds what Ernest opened or last saved. If another application changed it, or created it after you opened a new name, saving asks whether to overwrite it with your version; `:w!` overwrites without asking, and `:e!` reloads the file instead. Autosave never overwrites such a file: it pauses with a message until you save or reload.
+Before saving over the document's file, Ernest checks that it still holds what Ernest opened or last saved. If another application changed it, or created it after you opened a new name, saving asks whether to overwrite it with your version (only the Overwrite button does; Return and Escape keep the file as it is); `:w!` overwrites without asking, and `:e!` reloads the file instead. Autosave never overwrites such a file: it pauses with a message until you save or reload.
 
 Saving is safe against crashes: the new text is written to a temporary file next to the original, flushed to disk, then renamed over it, so an interrupted save leaves the previous version intact. Saving through a symbolic link updates the target and keeps the link, and the file's permissions are kept. A file you may not write, such as one marked read-only or owned by another user, is not overwritten: saving it reports `… is read-only`, and Save As writes elsewhere.
 
-Paths typed after `:e`, `:w` or `:sav` work in any folder. When one is not a Markdown or text file (`.md`, `.markdown`, `.mdown`, `.mkd`, `.txt`, `.text`), points through a link to a file that is not, names a system device or lies on another computer, Ernest asks before opening or saving it; once allowed, it is not asked about again until Ernest quits. Files chosen with Mod+O, Mod+Shift+S or on the command line never ask. The question comes from Ernest itself rather than its interface, so nothing can answer it for you.
+Paths typed after `:e`, `:w` or `:sav` work in any folder. When one is not a Markdown or text file (`.md`, `.markdown`, `.mdown`, `.mkd`, `.txt`, `.text`), points through a link to a file that is not, names a system device or lies on another computer, Ernest asks before opening or saving it: only the Open or Save button allows it, while Return (Don't Open or Don't Save), Escape and closing the question decline; once allowed, it is not asked about again until Ernest quits. Files chosen with Mod+O, Mod+Shift+S or on the command line never ask. The question comes from Ernest itself rather than its interface, so nothing can answer it for you.
 
 Opening a path that does not exist yet (from the command line or with `:e`) gives an empty document under that name; the file is created on the first save. This matches `vim new.md`.
 
@@ -46,7 +46,7 @@ In development: `just run path/to/chapter.md`.
 
 ### Unsaved changes
 
-Closing the window, quitting, opening another file or starting a new one with unsaved changes asks for confirmation first. The Vim commands answer the Vim way instead: `:q`, `:e` and `:enew` refuse with `E37: No write since last change (add ! to override)`, and the `!` forms discard.
+Closing the window, quitting, opening another file or starting a new one with unsaved changes asks first: Save (Return) saves and carries on, asking for a location if the document is untitled; Don't Save (Cmd+D on macOS) discards the changes; Cancel (Escape) keeps editing. The Vim commands answer the Vim way instead: `:q`, `:e` and `:enew` refuse with `E37: No write since last change (add ! to override)`, and the `!` forms discard.
 
 ### Autosave
 
