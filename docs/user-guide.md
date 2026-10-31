@@ -34,6 +34,8 @@ Saving is safe against crashes: the new text is written to a temporary file next
 
 Paths typed after `:e`, `:w` or `:sav` work in any folder. When one is not a Markdown or text file (`.md`, `.markdown`, `.mdown`, `.mkd`, `.txt`, `.text`), points through a link to a file that is not, names a system device or lies on another computer, Ernest asks before opening or saving it: only the Open or Save button allows it, while Return (Don't Open or Don't Save), Escape and closing the question decline; once allowed, it is not asked about again until Ernest quits. Files chosen with Mod+O, Mod+Shift+S or on the command line never ask. The question comes from Ernest itself rather than its interface, so nothing can answer it for you.
 
+A folder is refused with a message rather than asked about, since it can be neither opened nor saved as a document.
+
 Opening a path that does not exist yet (from the command line or with `:e`) gives an empty document under that name; the file is created on the first save. This matches `vim new.md`.
 
 ### Opening a file on launch

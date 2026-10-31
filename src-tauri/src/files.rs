@@ -40,6 +40,12 @@ pub fn write_atomically_if(
         .map(|name| name.to_string_lossy().into_owned())
         .unwrap_or_default();
     let existing = fs::metadata(&target).ok();
+    // Also caught here, where the write happens: a network path is only
+    // inspected once the writer allowed it, and a file can become a folder
+    // after it was checked.
+    if existing.as_ref().is_some_and(fs::Metadata::is_dir) {
+        return Err(Error::IsFolder(absolute(path)));
+    }
     // Opening for writing, without truncating, answers for the read-only
     // attribute, Unix ownership and modes, ACLs and macOS locks alike.
     if existing.is_some()
@@ -185,6 +191,19 @@ mod tests {
         });
 
         assert!(versions.contains(&fs::read_to_string(&path).unwrap()));
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn refuses_to_write_over_a_folder() {
+        let directory = tempfile::tempdir().unwrap();
+        let folder = directory.path().join("chapter.md");
+        fs::create_dir(&folder).unwrap();
+
+        assert!(matches!(
+            write_atomically(&folder, b"text"),
+            Err(Error::IsFolder(_))
+        ));
         assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
     }
 

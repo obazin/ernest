@@ -9,6 +9,9 @@
 //! location) is shown to the writer in a native confirmation the webview
 //! cannot answer, and granted if they allow it. A compromised webview
 //! therefore cannot quietly read `~/.ssh/id_ed25519` or overwrite `~/.zshrc`.
+//! A folder is refused outright, before any grant or confirmation: there is
+//! nothing to ask about, since it can be neither read nor written as a
+//! document.
 
 use std::collections::HashSet;
 use std::fs;
@@ -86,15 +89,23 @@ impl DocumentAccess {
     }
 
     /// The file to read or write for `path`, resolved through symlinks when
-    /// it exists. A granted path or a text document by name passes; anything
-    /// else goes to `confirm`, and is granted when it answers true. Callers
-    /// use the returned path, so what was checked is what gets touched.
+    /// it exists. A folder, or a typed path ending in a separator, is refused;
+    /// a granted path or a text document by name passes; anything else goes
+    /// to `confirm`, and is granted when it answers true. Callers use the
+    /// returned path, so what was checked is what gets touched.
     pub fn check(
         &self,
         path: &Path,
         confirm: impl FnOnce(&Path, &Concern) -> bool,
     ) -> Result<PathBuf> {
         let given = absolute(path);
+        if path
+            .as_os_str()
+            .to_string_lossy()
+            .ends_with(std::path::is_separator)
+        {
+            return Err(Error::IsFolder(given));
+        }
         // Before touching the file system: resolving a network path is
         // itself a network request.
         if !is_on_local_disk(&given) {
@@ -105,6 +116,11 @@ impl DocumentAccess {
         }
         match fs::canonicalize(&given) {
             Ok(target) => {
+                // Nothing to ask about: a folder can be neither read nor
+                // written as a document, whatever its name.
+                if target.is_dir() {
+                    return Err(Error::IsFolder(given));
+                }
                 if self.is_granted(&given) || self.is_granted(&target) {
                     return Ok(target);
                 }
@@ -228,6 +244,47 @@ mod tests {
         }
         let device = directory.path().join("NUL.md");
         assert_eq!(concern_for(&access, &device), Some(Concern::DeviceName));
+    }
+
+    #[test]
+    fn refuses_folders_without_asking_whatever_their_name() {
+        let directory = tempfile::tempdir().unwrap();
+        let access = DocumentAccess::default();
+        for name in ["drafts", "chapter.md"] {
+            let folder = directory.path().join(name);
+            fs::create_dir(&folder).unwrap();
+            assert!(
+                matches!(access.check(&folder, never_asked), Err(Error::IsFolder(_))),
+                "{name}"
+            );
+        }
+        // Even a folder named on the command line.
+        access.grant(directory.path());
+        assert!(matches!(
+            access.check(directory.path(), never_asked),
+            Err(Error::IsFolder(_))
+        ));
+        // A typed folder that does not exist yet.
+        let typed = format!("{}/drafts-to-come/", directory.path().display());
+        assert!(matches!(
+            access.check(Path::new(&typed), never_asked),
+            Err(Error::IsFolder(_))
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_a_text_name_that_links_to_a_folder_without_asking() {
+        let directory = tempfile::tempdir().unwrap();
+        let folder = directory.path().join("drafts");
+        fs::create_dir(&folder).unwrap();
+        let link = directory.path().join("notes.md");
+        std::os::unix::fs::symlink(&folder, &link).unwrap();
+
+        assert!(matches!(
+            DocumentAccess::default().check(&link, never_asked),
+            Err(Error::IsFolder(_))
+        ));
     }
 
     #[test]

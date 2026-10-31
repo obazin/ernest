@@ -258,6 +258,8 @@ fn read_at_most(path: &Path, limit: u64) -> Result<Document> {
                 stamp: ABSENT.to_owned(),
             });
         }
+        // Opening a folder fails differently on each platform.
+        Err(_) if path.is_dir() => return Err(Error::IsFolder(path.to_path_buf())),
         Err(error) => return Err(Error::io(path)(error)),
     };
     let stamp = content_stamp(&bytes);
@@ -415,6 +417,12 @@ mod tests {
             serde_json::to_value(Saved::ChangedOnDisk).unwrap(),
             serde_json::json!({ "outcome": "changedOnDisk" })
         );
+    }
+
+    #[test]
+    fn reading_a_folder_is_refused_as_one() {
+        let directory = tempfile::tempdir().unwrap();
+        assert!(matches!(read(directory.path()), Err(Error::IsFolder(_))));
     }
 
     #[test]

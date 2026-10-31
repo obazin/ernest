@@ -16,6 +16,8 @@ pub enum Error {
     ReadOnly(PathBuf),
     #[error("{0} is not a UTF-8 text file")]
     NotText(PathBuf),
+    #[error("{0} names a folder, not a document")]
+    IsFolder(PathBuf),
     #[error("{0}: not opened or saved, since you declined")]
     Declined(PathBuf),
     #[error("settings: {0}")]
